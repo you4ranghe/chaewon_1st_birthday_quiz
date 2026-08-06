@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>채원이 첫 돌잔치 QUIZ GAME</title>
+
+<style>
+/*__EMBED_FONTS__*/
+
+:root{
+  /* ── 팔레트 ─────────────────────────── */
+  --sky-top:#4FA8F0;
+  --sky-bot:#8FD4FF;
+  --ink:#16214A;
+  --ink-2:#0C1330;
+  --gold:#F6CE3C;
+  --gold-d:#D9A21B;
+  --red:#E8503C;
+  --red-d:#B32F20;
+  --grass:#5CCB4E;
+  --grass-d:#2F9B36;
+  --dirt:#B4571F;
+  --dirt-d:#7C3A12;
+  --cloud:#FFFFFF;
+  --paper:#FFFDF5;
+
+  /* ── 타이포 ─────────────────────────── */
+  --f-pixel:'PressStart2P','Galmuri11',monospace;
+  --f-kr-pixel:'Galmuri11','PressStart2P','Malgun Gothic',sans-serif;
+  --f-body:'PretendardXB','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+html,body{
+  height:100%;
+  background:#0A0F1E;
+  overflow:hidden;
+  font-family:var(--f-body);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ══════════════════════════════════════
+   무대(Stage) — 1920×1080 고정 후 화면에 맞게 스케일
+   ══════════════════════════════════════ */
+#viewport{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:#0A0F1E;
+}
+#stage{
+  position:relative;
+  width:1920px; height:1080px;
+  transform-origin:center center;
+  overflow:hidden;
+  background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-bot) 78%);
+  box-shadow:0 0 80px rgba(0,0,0,.6);
+  cursor:default;
+}
+
+/* ══════════════════════════════════════
+   하늘 · 구름
+   ══════════════════════════════════════ */
+.cloud{
+  position:absolute;
+  image-rendering:pixelated;
+  opacity:.95;
+  will-change:transform;
+}
+.cloud svg{display:block;width:100%;height:auto;}
+@keyframes drift{
+  from{transform:translateX(2100px);}
+  to  {transform:translateX(-520px);}
+}
+.c1{width:340px; top:150px;  animation:drift 82s linear infinite;}
+.c2{width:220px; top:330px;  animation:drift 118s linear infinite; animation-delay:-40s; opacity:.8;}
+.c3{width:420px; top:70px;   animation:drift 145s linear infinite; animation-delay:-95s; opacity:.7;}
+.c4{width:260px; top:470px;  animation:drift 100s linear infinite; animation-delay:-70s; opacity:.55;}
+
+/* ══════════════════════════════════════
+   HUD — 하트 3개
+   ══════════════════════════════════════ */
+#hud{
+  position:absolute; top:56px; right:80px;
+  display:flex; gap:22px; z-index:60;
+}
+#hud .heart{width:62px; image-rendering:pixelated; animation:beat 1.5s ease-in-out infinite;}
+#hud .heart:nth-child(2){animation-delay:.18s;}
+#hud .heart:nth-child(3){animation-delay:.36s;}
+@keyframes beat{
+  0%,100%{transform:scale(1);}
+  14%{transform:scale(1.18);}
+  28%{transform:scale(1);}
+  42%{transform:scale(1.1);}
+}
+
+/* ══════════════════════════════════════
+   슬라이드
+   ══════════════════════════════════════ */
+#slides{position:absolute; inset:0;}
+.slide{position:absolute; inset:0; display:none;}
+.slide.is-active{display:block;}
+
+/* ── 지면 ─────────────────────────── */
+.ground{
+  position:absolute; left:0; right:0; bottom:0;
+  image-rendering:pixelated;
+  z-index:5;
+}
+.ground--grass{height:150px;}
+.ground--grass .turf{
+  position:absolute; top:0; left:0; right:0; height:34px;
+  background:var(--grass);
+  border-top:8px solid #7EE06B;
+}
+.ground--grass .turf::after{
+  content:''; position:absolute; left:0; right:0; top:-20px; height:20px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' shape-rendering='crispEdges'%3E%3Crect x='0' y='10' width='10' height='10' fill='%237EE06B'/%3E%3Crect x='14' y='4' width='8' height='16' fill='%237EE06B'/%3E%3Crect x='26' y='12' width='10' height='8' fill='%237EE06B'/%3E%3C/svg%3E");
+  background-repeat:repeat-x;
+}
+.ground--grass .soil{
+  position:absolute; top:34px; left:0; right:0; bottom:0;
+  background:var(--dirt);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' shape-rendering='crispEdges'%3E%3Crect x='8' y='12' width='8' height='8' fill='%237C3A12'/%3E%3Crect x='38' y='30' width='8' height='8' fill='%237C3A12'/%3E%3Crect x='20' y='46' width='8' height='8' fill='%237C3A12'/%3E%3Crect x='50' y='6' width='6' height='6' fill='%23C9702F'/%3E%3C/svg%3E");
+}
+
+.ground--stone{
+  height:150px;
+  background:#8B94AE;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' shape-rendering='crispEdges'%3E%3Crect width='120' height='60' fill='%238B94AE'/%3E%3Crect y='0' width='120' height='6' fill='%233A4468'/%3E%3Crect y='30' width='120' height='6' fill='%233A4468'/%3E%3Crect x='0' y='6' width='6' height='24' fill='%233A4468'/%3E%3Crect x='60' y='6' width='6' height='24' fill='%233A4468'/%3E%3Crect x='30' y='36' width='6' height='24' fill='%233A4468'/%3E%3Crect x='90' y='36' width='6' height='24' fill='%233A4468'/%3E%3Crect x='12' y='12' width='12' height='8' fill='%23A6AEC6'/%3E%3Crect x='72' y='14' width='16' height='8' fill='%23A6AEC6'/%3E%3Crect x='42' y='42' width='14' height='8' fill='%23A6AEC6'/%3E%3C/svg%3E");
+  border-top:8px solid #3A4468;
+}
+
+.ground--brick{
+  height:150px;
+  background:#C0472F;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' shape-rendering='crispEdges'%3E%3Crect width='120' height='60' fill='%23C0472F'/%3E%3Crect y='0' width='120' height='6' fill='%237E2418'/%3E%3Crect y='30' width='120' height='6' fill='%237E2418'/%3E%3Crect x='0' y='6' width='6' height='24' fill='%237E2418'/%3E%3Crect x='60' y='6' width='6' height='24' fill='%237E2418'/%3E%3Crect x='30' y='36' width='6' height='24' fill='%237E2418'/%3E%3Crect x='90' y='36' width='6' height='24' fill='%237E2418'/%3E%3C/svg%3E");
+  border-top:8px solid #7E2418;
+}
+
+/* ── 배경 소품 ─────────────────────── */
+.prop{position:absolute; image-rendering:pixelated; z-index:6;}
+.prop svg{display:block; width:100%; height:auto;}
+
+@keyframes bob{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-14px);}
+}
+@keyframes spin{
+  0%,100%{transform:scaleX(1);}
+  25%{transform:scaleX(.25);}
+  50%{transform:scaleX(-1);}
+  75%{transform:scaleX(.25);}
+}
+.prop--coin{animation:spin 1.8s steps(8,end) infinite;}
+.prop--float{animation:bob 2.6s ease-in-out infinite;}
+
+/* 보물 반짝임 */
+.sparkle{
+  position:absolute; z-index:7;
+  width:26px; height:26px;
+  background:
+    linear-gradient(#FFF9D6 0 0) center/100% 30% no-repeat,
+    linear-gradient(#FFF9D6 0 0) center/30% 100% no-repeat;
+  animation:twinkle 1.5s ease-in-out infinite;
+}
+@keyframes twinkle{
+  0%,100%{transform:scale(.4) rotate(0deg); opacity:.25;}
+  50%    {transform:scale(1) rotate(45deg); opacity:1;}
+}
+
+/* ══════════════════════════════════════
+   콘텐츠
+   ══════════════════════════════════════ */
+.content{
+  position:absolute; inset:0;
+  z-index:20;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:110px 130px 190px;
+  text-align:center;
+}
+.content--top{justify-content:flex-start;}
+
+/* ── 타이틀 ────────────────────────── */
+.title-kr{
+  font-family:var(--f-kr-pixel);
+  font-weight:400;
+  font-size:132px;
+  line-height:1.1;
+  color:var(--ink);
+  letter-spacing:.04em;
+  text-shadow:0 8px 0 rgba(0,0,0,.16);
+}
+.title-en{
+  font-family:var(--f-pixel);
+  font-size:128px;
+  line-height:1.3;
+  color:var(--gold);
+  letter-spacing:.02em;
+  text-shadow:
+     6px 0 0 var(--ink),  -6px 0 0 var(--ink),
+     0 6px 0 var(--ink),  0 -6px 0 var(--ink),
+     6px 6px 0 var(--ink), -6px -6px 0 var(--ink),
+     6px -6px 0 var(--ink), -6px 6px 0 var(--ink),
+     0 18px 0 rgba(0,0,0,.18);
+}
+.title-quiz{
+  font-family:var(--f-pixel);
+  font-size:80px;
+  color:#fff;
+  letter-spacing:.04em;
+  text-shadow:
+     6px 0 0 var(--ink-2),  -6px 0 0 var(--ink-2),
+     0 6px 0 var(--ink-2),  0 -6px 0 var(--ink-2),
+     6px 6px 0 var(--ink-2), -6px -6px 0 var(--ink-2),
+     6px -6px 0 var(--ink-2), -6px 6px 0 var(--ink-2),
+     0 16px 0 rgba(0,0,0,.2);
+}
+
+.eyebrow{
+  font-weight:800;
+  font-size:44px;
+  color:var(--ink);
+  letter-spacing:-.01em;
+  opacity:.9;
+}
+
+.body-text{
+  font-weight:800;
+  font-size:60px;
+  line-height:1.62;
+  color:var(--ink);
+  letter-spacing:-.02em;
+  text-shadow:0 3px 0 rgba(255,255,255,.45);
+}
+.body-text .hl-red{color:var(--red-d);}
+.body-text .hl-gold{
+  color:var(--gold);
+  text-shadow:
+    3px 0 0 var(--ink), -3px 0 0 var(--ink),
+    0 3px 0 var(--ink), 0 -3px 0 var(--ink),
+    3px 3px 0 var(--ink), -3px -3px 0 var(--ink),
+    3px -3px 0 var(--ink), -3px 3px 0 var(--ink);
+}
+
+.q-text{
+  font-weight:800;
+  font-size:72px;
+  line-height:1.42;
+  color:var(--ink-2);
+  letter-spacing:-.03em;
+  text-shadow:0 4px 0 rgba(255,255,255,.4);
+}
+.q-note{
+  font-weight:800;
+  font-size:32px;
+  color:var(--ink-2);
+  opacity:.72;
+  margin-top:18px;
+  letter-spacing:-.02em;
+}
+
+/* ── 규칙 카드 ─────────────────────── */
+.rule-list{display:flex; flex-direction:column; gap:26px; width:1420px;}
+.rule{
+  display:flex; align-items:center; gap:40px;
+  background:var(--paper);
+  border:8px solid var(--ink);
+  border-radius:28px;
+  padding:30px 48px;
+  box-shadow:0 10px 0 rgba(22,33,74,.28);
+  text-align:left;
+}
+.rule .num{
+  font-family:var(--f-pixel);
+  font-size:36px;
+  color:var(--red);
+  flex:0 0 auto;
+}
+.rule .txt{
+  font-weight:800;
+  font-size:56px;
+  color:var(--ink);
+  letter-spacing:-.03em;
+}
+.rule .txt em{font-style:normal; color:var(--red-d);}
+
+/* ── 보기 ──────────────────────────── */
+.options{
+  display:flex; flex-wrap:wrap;
+  justify-content:center;
+  gap:26px 48px;
+  max-width:1600px;
+}
+.option{
+  display:flex; align-items:center; gap:16px;
+  font-weight:800;
+  font-size:var(--opt,60px);
+  color:var(--ink-2);
+  letter-spacing:-.02em;
+  padding:6px 20px;
+  text-shadow:0 3px 0 rgba(255,255,255,.5);
+}
+.mark{
+  display:inline-flex; align-items:center; justify-content:center;
+  flex:0 0 auto;
+  width:calc(var(--opt,60px) * 1.22);
+  height:calc(var(--opt,60px) * 1.22);
+  border:6px solid var(--ink-2);
+  border-radius:50%;
+  font-size:calc(var(--opt,60px) * .78);
+  line-height:1;
+  background:rgba(255,255,255,.32);
+  text-shadow:none;
+}
+
+/* 보기 전용 슬라이드 (번호만 가로 배치) */
+.option-row{
+  display:flex; justify-content:space-between;
+  width:1600px; margin-top:40px;
+}
+.option-row .slot{
+  display:flex; flex-direction:column; align-items:center; gap:22px;
+}
+.option-row .mark{
+  --opt:78px;
+  background:rgba(255,255,255,.4);
+}
+.option-row .label{
+  font-weight:800; font-size:46px; color:var(--ink-2);
+  letter-spacing:-.02em; min-height:56px;
+}
+
+/* ── 정답 말풍선 ───────────────────── */
+.answer-bubble{
+  position:absolute;
+  left:640px; bottom:400px;
+  background:var(--paper);
+  border:10px solid var(--ink);
+  border-radius:26px;
+  padding:44px 90px;
+  box-shadow:0 12px 0 var(--gold-d), 0 12px 0 8px rgba(22,33,74,.18);
+  font-weight:800;
+  font-size:78px;
+  color:var(--ink-2);
+  letter-spacing:-.02em;
+  display:flex; align-items:center; gap:24px;
+}
+.answer-bubble::after{
+  content:'';
+  position:absolute; left:44px; bottom:-46px;
+  width:0; height:0;
+  border-right:44px solid transparent;
+  border-top:46px solid var(--ink);
+}
+.answer-bubble .mark{--opt:78px;}
+
+/* 빈 말풍선 (현장에서 실물·사진을 보여줄 자리) */
+.answer-bubble--blank{
+  left:600px; bottom:320px;
+  width:880px; height:460px;
+  padding:40px 46px;
+  align-items:flex-start;
+  font-size:64px;
+}
+.answer-bubble--blank .mark{--opt:64px;}
+.answer-bubble--blank .fill{
+  align-self:center;
+  margin-left:auto; margin-right:auto;
+}
+
+/* ── START 버튼 ────────────────────── */
+.btn-start{
+  font-family:var(--f-pixel);
+  font-size:48px;
+  color:#fff;
+  background:var(--red);
+  border:8px solid var(--ink);
+  border-radius:20px;
+  padding:26px 58px 30px;
+  box-shadow:0 10px 0 var(--red-d), 0 10px 0 8px rgba(22,33,74,.22);
+  letter-spacing:.06em;
+  animation:btnPulse 1.6s ease-in-out infinite;
+}
+@keyframes btnPulse{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-10px);}
+}
+
+/* ══════════════════════════════════════
+   등장 애니메이션
+   ══════════════════════════════════════ */
+[data-anim]{opacity:0;}
+.is-active [data-anim]{
+  animation:popIn .62s cubic-bezier(.18,1.5,.42,1) forwards;
+  animation-delay:calc(var(--d,0) * 1ms);
+}
+@keyframes popIn{
+  0%  {opacity:0; transform:translateY(84px) scale(.9);}
+  60% {opacity:1;}
+  100%{opacity:1; transform:translateY(0) scale(1);}
+}
+
+.is-active [data-anim="drop"]{
+  animation:dropIn .58s cubic-bezier(.22,1.4,.36,1) forwards;
+  animation-delay:calc(var(--d,0) * 1ms);
+}
+@keyframes dropIn{
+  0%  {opacity:0; transform:translateY(-120px) rotate(-3deg);}
+  100%{opacity:1; transform:translateY(0) rotate(0);}
+}
+
+.is-active [data-anim="slideL"]{
+  animation:slideL .5s cubic-bezier(.2,.9,.3,1) forwards;
+  animation-delay:calc(var(--d,0) * 1ms);
+}
+@keyframes slideL{
+  0%  {opacity:0; transform:translateX(-90px);}
+  100%{opacity:1; transform:translateX(0);}
+}
+
+/* 화면 전환 와이프 */
+#wipe{
+  position:absolute; inset:0; z-index:200;
+  pointer-events:none;
+  background:var(--ink-2);
+  transform:scaleY(0);
+  transform-origin:bottom;
+}
+#wipe.run{animation:wipe .46s steps(6,end);}
+@keyframes wipe{
+  0%  {transform:scaleY(0); transform-origin:bottom;}
+  45% {transform:scaleY(1); transform-origin:bottom;}
+  55% {transform:scaleY(1); transform-origin:top;}
+  100%{transform:scaleY(0); transform-origin:top;}
+}
+
+/* ══════════════════════════════════════
+   진행 표시 · 안내
+   ══════════════════════════════════════ */
+#progress{
+  position:absolute; left:0; right:0; bottom:0; height:12px;
+  background:rgba(22,33,74,.18);
+  z-index:80;
+}
+#progress .bar{
+  height:100%; width:0;
+  background:var(--gold);
+  border-right:4px solid var(--ink);
+  transition:width .42s cubic-bezier(.3,1,.4,1);
+}
+#pagenum{
+  position:absolute; left:56px; bottom:44px;
+  z-index:80;
+  font-family:var(--f-pixel);
+  font-size:24px;
+  color:var(--ink);
+  opacity:.45;
+}
+
+#help{
+  position:absolute; right:56px; bottom:40px;
+  z-index:80;
+  font-weight:800;
+  font-size:24px;
+  color:var(--ink);
+  background:rgba(255,255,255,.62);
+  border:4px solid rgba(22,33,74,.3);
+  border-radius:14px;
+  padding:12px 20px;
+  opacity:0;
+  transition:opacity .4s;
+  pointer-events:none;
+}
+#help.show{opacity:1;}
+#help kbd{
+  font-family:var(--f-pixel); font-size:15px;
+  background:var(--ink); color:#fff;
+  padding:6px 8px; border-radius:6px; margin:0 2px;
+}
+
+/* ── 3초 카운트다운 ────────────────── */
+#timer{
+  position:absolute; inset:0; z-index:150;
+  display:none;
+  align-items:center; justify-content:center;
+  background:rgba(12,19,48,.55);
+}
+#timer.show{display:flex;}
+#timer .num{
+  font-family:var(--f-pixel);
+  font-size:320px;
+  color:var(--gold);
+  text-shadow:
+    10px 0 0 var(--ink-2), -10px 0 0 var(--ink-2),
+    0 10px 0 var(--ink-2), 0 -10px 0 var(--ink-2),
+    10px 10px 0 var(--ink-2), -10px -10px 0 var(--ink-2);
+  animation:tick .9s cubic-bezier(.2,1.4,.4,1);
+}
+#timer .num.small{font-size:160px;}
+@keyframes tick{
+  0%{transform:scale(2.2); opacity:0;}
+  30%{transform:scale(1); opacity:1;}
+  100%{transform:scale(1); opacity:1;}
+}
+
+/* 색종이 */
+.confetti{
+  position:absolute; z-index:120;
+  width:20px; height:20px;
+  image-rendering:pixelated;
+  pointer-events:none;
+}
+
+/* 목차(전체 보기) */
+#overview{
+  position:absolute; inset:0; z-index:180;
+  display:none;
+  background:rgba(12,19,48,.94);
+  padding:70px 80px;
+  overflow:auto;
+}
+#overview.show{display:block;}
+#overview h2{
+  font-family:var(--f-pixel); font-size:34px; color:var(--gold);
+  margin-bottom:36px; letter-spacing:.04em;
+}
+#overview .grid{
+  display:grid; grid-template-columns:repeat(5,1fr); gap:20px;
+}
+#overview .card{
+  background:rgba(255,255,255,.08);
+  border:4px solid rgba(255,255,255,.18);
+  border-radius:16px;
+  padding:20px 22px;
+  color:#fff;
+  cursor:pointer;
+  text-align:left;
+}
+#overview .card:hover,#overview .card:focus{
+  background:var(--gold); color:var(--ink-2); border-color:#fff; outline:none;
+}
+#overview .card .n{
+  font-family:var(--f-pixel); font-size:18px; opacity:.7; display:block; margin-bottom:12px;
+}
+#overview .card .t{font-weight:800; font-size:28px; letter-spacing:-.02em;}
+#overview .card.now{border-color:var(--gold);}
+
+#mute{
+  position:absolute; right:80px; top:150px; z-index:80;
+  font-family:var(--f-pixel); font-size:18px;
+  color:var(--ink); opacity:0; transition:opacity .3s;
+}
+#mute.show{opacity:.6;}
+
+@media (prefers-reduced-motion:reduce){
+  .cloud,#hud .heart,.prop--coin,.prop--float,.btn-start,.sparkle{animation:none !important;}
+  .is-active [data-anim]{animation-duration:.01ms !important;}
+  #wipe.run{animation-duration:.01ms !important;}
+}
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="stage">
+
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="cloud c4"></div>
+
+    <div id="hud"></div>
+    <div id="slides"></div>
+
+    <div id="timer"><div class="num">3</div></div>
+    <div id="overview"><h2>SELECT SLIDE</h2><div class="grid"></div></div>
+    <div id="wipe"></div>
+
+    <div id="mute">SOUND OFF</div>
+    <div id="pagenum">01 / 25</div>
+    <div id="help"></div>
+    <div id="progress"><div class="bar"></div></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   1. 픽셀 아트
+   ══════════════════════════════════════════════════════════ */
+const ART = {
+  cloud:`<svg viewBox="0 0 32 14" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#fff">
+      <rect x="10" y="2" width="8" height="2"/><rect x="8" y="4" width="12" height="2"/>
+      <rect x="20" y="6" width="6" height="2"/><rect x="4" y="6" width="18" height="2"/>
+      <rect x="2" y="8" width="28" height="2"/><rect x="0" y="10" width="32" height="2"/>
+    </g>
+    <g fill="#DCEFFF"><rect x="0" y="12" width="32" height="2"/></g>
+  </svg>`,
+
+  heart:`<svg viewBox="0 0 14 12" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#E8503C">
+      <rect x="2" y="1" width="4" height="1"/><rect x="8" y="1" width="4" height="1"/>
+      <rect x="1" y="2" width="12" height="3"/><rect x="2" y="5" width="10" height="2"/>
+      <rect x="3" y="7" width="8" height="1"/><rect x="4" y="8" width="6" height="1"/>
+      <rect x="5" y="9" width="4" height="1"/><rect x="6" y="10" width="2" height="1"/>
+    </g>
+    <g fill="#FF9C8C"><rect x="3" y="2" width="2" height="2"/></g>
+    <g fill="#7E1B12">
+      <rect x="2" y="0" width="4" height="1"/><rect x="8" y="0" width="4" height="1"/>
+      <rect x="0" y="2" width="1" height="3"/><rect x="13" y="2" width="1" height="3"/>
+      <rect x="1" y="1" width="1" height="1"/><rect x="12" y="1" width="1" height="1"/>
+      <rect x="6" y="1" width="2" height="1"/>
+    </g>
+  </svg>`,
+
+  coin:`<svg viewBox="0 0 12 14" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#16214A">
+      <rect x="3" y="0" width="6" height="1"/><rect x="3" y="13" width="6" height="1"/>
+      <rect x="1" y="1" width="2" height="1"/><rect x="9" y="1" width="2" height="1"/>
+      <rect x="1" y="12" width="2" height="1"/><rect x="9" y="12" width="2" height="1"/>
+      <rect x="0" y="2" width="1" height="10"/><rect x="11" y="2" width="1" height="10"/>
+    </g>
+    <g fill="#F6CE3C"><rect x="1" y="2" width="10" height="10"/><rect x="3" y="1" width="6" height="1"/><rect x="3" y="12" width="6" height="1"/></g>
+    <g fill="#D9A21B"><rect x="7" y="3" width="3" height="8"/></g>
+    <g fill="#FFF0A8"><rect x="4" y="3" width="2" height="8"/></g>
+  </svg>`,
+
+  brick:`<svg viewBox="0 0 16 16" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <rect width="16" height="16" fill="#C0472F"/>
+    <g fill="#7E2418">
+      <rect y="0" width="16" height="1"/><rect y="7" width="16" height="2"/><rect y="15" width="16" height="1"/>
+      <rect x="7" y="1" width="2" height="6"/><rect x="0" y="9" width="1" height="6"/><rect x="15" y="9" width="1" height="6"/>
+    </g>
+    <g fill="#E07B5C"><rect x="1" y="1" width="5" height="1"/><rect x="1" y="9" width="6" height="1"/></g>
+  </svg>`,
+
+  tree:`<svg viewBox="0 0 22 30" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#2F9B36">
+      <rect x="6" y="1" width="9" height="2"/><rect x="4" y="3" width="13" height="2"/>
+      <rect x="2" y="5" width="17" height="7"/><rect x="4" y="12" width="13" height="4"/>
+      <rect x="6" y="16" width="9" height="2"/>
+    </g>
+    <g fill="#5CCB4E">
+      <rect x="6" y="2" width="6" height="2"/><rect x="4" y="4" width="10" height="2"/>
+      <rect x="3" y="6" width="9" height="4"/><rect x="14" y="8" width="3" height="6"/>
+    </g>
+    <g fill="#8FF089"><rect x="5" y="5" width="2" height="6"/><rect x="9" y="7" width="2" height="5"/></g>
+    <g fill="#7C3A12"><rect x="9" y="18" width="4" height="12"/></g>
+    <g fill="#A5502A"><rect x="9" y="18" width="2" height="12"/></g>
+    <g fill="#7C3A12"><rect x="5" y="21" width="4" height="2"/><rect x="13" y="24" width="4" height="2"/></g>
+  </svg>`,
+
+  flower:`<svg viewBox="0 0 14 24" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#E8508F">
+      <rect x="4" y="1" width="6" height="2"/><rect x="2" y="3" width="10" height="4"/><rect x="4" y="7" width="6" height="2"/>
+    </g>
+    <g fill="#FF8FC0"><rect x="4" y="2" width="3" height="3"/></g>
+    <g fill="#2F9B36">
+      <rect x="6" y="9" width="2" height="15"/>
+      <rect x="1" y="12" width="5" height="2"/><rect x="8" y="16" width="5" height="2"/>
+    </g>
+    <g fill="#5CCB4E"><rect x="2" y="12" width="3" height="1"/><rect x="9" y="16" width="3" height="1"/></g>
+  </svg>`,
+
+  bush:`<svg viewBox="0 0 28 10" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#2F9B36">
+      <rect x="5" y="2" width="5" height="2"/><rect x="17" y="1" width="5" height="3"/>
+      <rect x="2" y="4" width="24" height="3"/><rect x="0" y="7" width="28" height="3"/>
+    </g>
+    <g fill="#5CCB4E">
+      <rect x="5" y="3" width="3" height="2"/><rect x="17" y="2" width="3" height="2"/>
+      <rect x="2" y="5" width="10" height="1"/>
+    </g>
+  </svg>`,
+
+  chest:`<svg viewBox="0 0 24 18" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#16214A"><rect x="1" y="2" width="22" height="16"/></g>
+    <g fill="#F6CE3C"><rect x="2" y="3" width="20" height="14"/></g>
+    <g fill="#D9A21B"><rect x="2" y="7" width="20" height="2"/><rect x="16" y="9" width="6" height="8"/></g>
+    <g fill="#8E4B1C"><rect x="9" y="3" width="6" height="14"/></g>
+    <g fill="#B4571F"><rect x="9" y="3" width="3" height="14"/></g>
+    <g fill="#16214A"><rect x="10" y="8" width="4" height="4"/></g>
+    <g fill="#FFF0A8"><rect x="3" y="4" width="5" height="1"/></g>
+  </svg>`,
+
+  moneybag:`<svg viewBox="0 0 18 22" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#E8C43A">
+      <rect x="6" y="0" width="6" height="2"/><rect x="5" y="2" width="8" height="2"/>
+      <rect x="7" y="4" width="4" height="2"/>
+    </g>
+    <g fill="#F6DC5E">
+      <rect x="5" y="6" width="8" height="2"/><rect x="3" y="8" width="12" height="4"/>
+      <rect x="2" y="12" width="14" height="7"/><rect x="3" y="19" width="12" height="2"/>
+    </g>
+    <g fill="#E8C43A">
+      <rect x="11" y="8" width="4" height="13"/><rect x="2" y="18" width="13" height="1"/>
+    </g>
+    <g fill="#FFF3A8"><rect x="4" y="10" width="3" height="6"/></g>
+    <g fill="#C9A21B"><rect x="2" y="21" width="14" height="1"/><rect x="6" y="0" width="2" height="1"/></g>
+  </svg>`,
+
+  girl:`<svg viewBox="0 0 16 26" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#F6CE3C">
+      <rect x="3" y="0" width="10" height="4"/><rect x="2" y="2" width="2" height="8"/><rect x="12" y="2" width="2" height="8"/>
+    </g>
+    <g fill="#FFE0B8"><rect x="4" y="3" width="8" height="7"/></g>
+    <g fill="#16214A"><rect x="5" y="5" width="2" height="2"/><rect x="9" y="5" width="2" height="2"/></g>
+    <g fill="#E8508F"><rect x="5" y="8" width="2" height="1"/><rect x="9" y="8" width="2" height="1"/></g>
+    <g fill="#4FD6C8"><rect x="3" y="10" width="10" height="8"/></g>
+    <g fill="#2FA79C"><rect x="3" y="10" width="10" height="1"/><rect x="10" y="11" width="3" height="7"/></g>
+    <g fill="#FFE0B8"><rect x="1" y="11" width="2" height="6"/><rect x="13" y="11" width="2" height="6"/></g>
+    <g fill="#16214A"><rect x="3" y="18" width="4" height="7"/><rect x="9" y="18" width="4" height="7"/></g>
+    <g fill="#E8503C"><rect x="2" y="25" width="5" height="1"/><rect x="9" y="25" width="5" height="1"/></g>
+  </svg>`,
+
+  book:`<svg viewBox="0 0 18 16" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#16214A"><rect x="1" y="0" width="16" height="14"/></g>
+    <g fill="#3C63D6"><rect x="2" y="1" width="14" height="12"/></g>
+    <g fill="#8FB4FF"><rect x="4" y="4" width="2" height="2"/><rect x="8" y="4" width="2" height="2"/><rect x="12" y="4" width="2" height="2"/></g>
+    <g fill="#E8EEFF"><rect x="0" y="14" width="18" height="2"/></g>
+  </svg>`
+};
+
+/* ══════════════════════════════════════════════════════════
+   2. 배경 프리셋
+   ══════════════════════════════════════════════════════════ */
+// 홀수 퀴즈 — 덤불과 장미
+const SCENE_BUSH = [
+  {art:'bush',   style:'left:-20px;  bottom:140px; width:280px;'},
+  {art:'bush',   style:'right:20px;  bottom:140px; width:260px;'},
+  {art:'flower', style:'right:180px; bottom:150px; width:150px;'}
+];
+// 짝수 퀴즈 — 나무 두 그루
+const SCENE_TREE = [
+  {art:'tree', style:'left:10px;   bottom:140px; width:270px;'},
+  {art:'tree', style:'right:10px;  bottom:140px; width:250px;'}
+];
+const PRIZE_CHEST = [
+  {art:'chest', style:'left:380px; bottom:145px; width:290px;'},
+  {sparkle:true, style:'left:352px; bottom:355px;'},
+  {sparkle:true, style:'left:640px; bottom:330px;'}
+];
+const PRIZE_BAG = [
+  {art:'moneybag', style:'left:410px; bottom:145px; width:180px;'},
+  {sparkle:true,   style:'left:378px; bottom:330px;'}
+];
+
+const scene = (...parts) => [].concat(...parts);
+
+/* ══════════════════════════════════════════════════════════
+   3. 슬라이드 — 총 25장
+   ══════════════════════════════════════════════════════════ */
+const SLIDES = [
+  /* 01 */ {
+    type:'title', nav:'표지',
+    eyebrow:'퀴즈 게임을 시작합니다',
+    en:['QUIZ','GAME'],
+    ground:'grass',
+    props:[
+      {art:'brick', style:'left:-10px;  bottom:150px; width:150px;'},
+      {art:'brick', style:'left:150px;  bottom:150px; width:150px;'},
+      {art:'brick', style:'right:-10px; bottom:150px; width:150px;'},
+      {art:'brick', style:'right:150px; bottom:150px; width:150px;'},
+      {art:'coin',  style:'left:190px;  bottom:340px; width:96px;', cls:'prop--coin'},
+      {art:'coin',  style:'right:190px; bottom:340px; width:96px;', cls:'prop--coin'},
+      {art:'bush',  style:'left:60px;   bottom:140px; width:280px;'},
+      {art:'bush',  style:'right:40px;  bottom:140px; width:300px;'}
+    ]
+  },
+  /* 02 */ {
+    type:'message', nav:'인사말',
+    krTitle:'인사말',
+    lines:[
+      '채원이의 돌잔치에 오신 모든 가족분들을 환영합니다.',
+      '지금부터 채원이에 대한 <span class="hl-red">퀴즈</span>를 시작하겠습니다.',
+      '맞추시는 분에겐 소정의 <span class="hl-gold">선물</span>이 있으니',
+      '열심히 참여해 주세요 :)'
+    ],
+    ground:'grass',
+    props:[
+      {art:'tree', style:'left:20px;  bottom:140px; width:230px;'},
+      {art:'tree', style:'right:20px; bottom:140px; width:250px;'}
+    ]
+  },
+  /* 03 */ {
+    type:'rules', nav:'게임 규칙',
+    krTitle:'게임 규칙',
+    rules:[
+      '정답을 알면 <em>“채원”</em>을 외칩니다.',
+      '질문에 대해 <em>3초</em> 안에 답변해주세요.',
+      '정답 시 문제 번호에 맞는 선물을 수령합니다!'
+    ],
+    ground:'brick',
+    props:[
+      {art:'coin',  style:'left:-30px;  bottom:430px; width:110px;', cls:'prop--coin'},
+      {art:'brick', style:'left:-20px;  bottom:150px; width:150px;'},
+      {art:'brick', style:'right:-20px; bottom:150px; width:150px;'},
+      {art:'book',  style:'right:110px; bottom:160px; width:150px;', cls:'prop--float'}
+    ]
+  },
+  /* 04 */ {
+    type:'start', nav:'게임 시작',
+    krTitle:'게임 시작',
+    lines:['이제 게임을 시작합니다.','문제를 잘 듣고 정답을 맞혀주세요.'],
+    ground:'stone',
+    props:[
+      {art:'girl',  style:'left:60px;   bottom:150px; width:220px;', cls:'prop--float'},
+      {art:'coin',  style:'right:180px; bottom:470px; width:110px;', cls:'prop--coin'},
+      {art:'brick', style:'right:-20px; bottom:290px; width:150px;'},
+      {art:'brick', style:'right:130px; bottom:290px; width:150px;'}
+    ]
+  },
+
+  /* 05 */ {
+    type:'quiz', no:1, nav:'Q1 몸무게',
+    question:'채원이가 태어났을 때 몸무게는?',
+    options:['① 2.91kg','② 2.92kg','③ 2.93kg','④ 2.94kg','⑤ 2.98kg'],
+    ground:'stone', props:SCENE_BUSH
+  },
+  /* 06 */ {
+    type:'answer', no:1, nav:'Q1 정답',
+    answer:'② 2.92kg',
+    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
+  },
+
+  /* 07 */ {
+    type:'quiz', no:2, nav:'Q2 조리원',
+    question:'조리원 퇴소날, 채원이는 어떤 행동을 안해서<br>엄마가 산후조리원에 전화를 했어요.<br>왜 전화했을까요?',
+    qSize:64,
+    options:['① 많이 울어서','② 잠을 안자서','③ 너무 많이 자서','④ 응가를 안해서','⑤ 트름 안하기'],
+    optSize:52,
+    ground:'stone', props:SCENE_TREE
+  },
+  /* 08 */ {
+    type:'answer', no:2, nav:'Q2 정답',
+    answer:'④ 응가를 안해서',
+    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
+  },
+
+  /* 09 */ {
+    type:'quiz', no:3, nav:'Q3 분유량',
+    question:'채원이는 하루에 분유를 몇 ml 먹을까요?',
+    options:['① 400ml','② 410ml','③ 420ml','④ 430ml','⑤ 440ml'],
+    ground:'stone', props:SCENE_BUSH
+  },
+  /* 10 */ {
+    type:'answer', no:3, nav:'Q3 정답',
+    answer:'③ 420ml',
+    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
+  },
+
+  /* 11 */ {
+    type:'quiz', no:4, nav:'Q4 검색어',
+    question:'엄마 아빠가 가장 많이 검색한 것은?',
+    options:['① 열이 나요.','② 밥을 안 먹어요.','③ 왜 울어요?','④ 뭐가 예뻐요?','⑤ 왜 안자요?'],
+    optSize:54,
+    ground:'stone', props:SCENE_TREE
+  },
+  /* 12 */ {
+    type:'answer', no:4, nav:'Q4 정답',
+    answer:'⑤ 왜 안자요?',
+    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
+  },
+
+  /* 13 */ {
+    type:'quiz', no:5, nav:'Q5 첫 엄마',
+    question:'채원이가 엄마라고 처음 말한 날짜는?',
+    options:['① 25.11.20','② 26.01.04','③ 26.01.09','④ 26.02.01','⑤ 26.03.01'],
+    optSize:56,
+    ground:'stone', props:SCENE_BUSH
+  },
+  /* 14 */ {
+    type:'answer', no:5, nav:'Q5 정답',
+    answer:'③ 26.01.09',
+    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
+  },
+
+  /* 15 */ {
+    type:'quiz', no:6, nav:'Q6 엄마 말버릇',
+    question:'엄마가 채원아~<br>다음으로 가장 많이 하는 말은?',
+    options:['① 안돼~','② 우와~','③ 아이고~','④ 사랑해~','⑤ 으악~'],
+    ground:'stone', props:SCENE_TREE
+  },
+  /* 16 */ {
+    type:'answer', no:6, nav:'Q6 정답',
+    answer:'② 우와~',
+    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
+  },
+
+  /* 17 */ {
+    type:'quiz', no:7, nav:'Q7 최애 간식',
+    question:'채원이의 최애 간식은?',
+    options:['① 떡뻥','② 바나나','③ 요거트','④ 치즈','⑤ 퓨레'],
+    ground:'stone', props:SCENE_BUSH
+  },
+  /* 18 */ {
+    type:'answer', no:7, nav:'Q7 정답',
+    answer:'① 떡뻥',
+    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
+  },
+
+  /* 19 */ {
+    type:'quiz', no:8, nav:'Q8 많이 들은 말',
+    question:'채원이가 가장 많이 들은 말은?',
+    options:['① 아이고 예뻐~','② 엄마 닮았다~','③ 아빠 닮았다~','④ 엄마 그만 찾아~','⑤ 순하다~'],
+    optSize:52,
+    ground:'stone', props:SCENE_TREE
+  },
+  /* 20 */ {
+    type:'answer', no:8, nav:'Q8 정답',
+    answer:'⑤ 순하다~',
+    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
+  },
+
+  /* 21 */ {
+    type:'quiz', no:9, nav:'Q9 발 사이즈',
+    question:'채원이의 발은 몇 번일까요?',
+    options:null,
+    ground:'stone', props:SCENE_BUSH
+  },
+  /* 22 */ {
+    type:'choices', no:9, nav:'Q9 보기',
+    // 실물이나 사진을 화면 앞에 두고 번호로 고르는 문제입니다.
+    // 글자로 보여주려면 아래 배열을 채우세요. 예: ['110mm','115mm','120mm','125mm','130mm']
+    labels:['','','','',''],
+    ground:'stone', props:SCENE_BUSH
+  },
+  /* 23 */ {
+    type:'answer', no:9, nav:'Q9 정답',
+    answer:'④', blank:true,
+    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
+  },
+
+  /* 24 */ {
+    type:'quiz', no:10, nav:'Q10 사진 장수',
+    question:'엄마 휴대폰 사진첩에는<br>채원이 사진이 몇 장 있을까요?',
+    note:'*앨범에서 채원이 얼굴 인식, 26.09.13 기준',
+    options:['① 1,316장','② 1,500장','③ 1,600장','④ 1,700장','⑤ 1,800장'],
+    optSize:56,
+    ground:'stone', props:SCENE_TREE
+  },
+  /* 25 */ {
+    type:'answer', no:10, nav:'Q10 정답',
+    answer:'① 1,316장',
+    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
+  }
+];
+
+/* ══════════════════════════════════════════════════════════
+   4. 렌더링
+   ══════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const stage = $('#stage');
+const TOTAL = SLIDES.length;
+
+document.querySelectorAll('.cloud').forEach(c => c.innerHTML = ART.cloud);
+$('#hud').innerHTML = `<div class="heart">${ART.heart}</div>`.repeat(3);
+
+const pad2 = n => String(n).padStart(2,'0');
+
+function propsHTML(props=[]){
+  return props.map(p => p.sparkle
+    ? `<div class="sparkle" style="${p.style}"></div>`
+    : `<div class="prop ${p.cls||''}" style="${p.style}">${ART[p.art]}</div>`
+  ).join('');
+}
+
+function groundHTML(kind){
+  return kind === 'grass'
+    ? `<div class="ground ground--grass"><div class="turf"></div><div class="soil"></div></div>`
+    : `<div class="ground ground--${kind}"></div>`;
+}
+
+// "① 2.92kg" → 번호와 내용 분리
+const splitOpt = s => ({mark:s.slice(0,1), rest:s.slice(1).trim()});
+
+function contentHTML(s){
+  let inner = '', extra = '';
+
+  if(s.type === 'title'){
+    inner = `
+      <div class="eyebrow" data-anim style="--d:60">${s.eyebrow}</div>
+      <div class="title-en" data-anim style="--d:220; margin-top:70px">${s.en[0]}<br>${s.en[1]}</div>
+      <div data-anim style="--d:620; margin-top:60px"><button class="btn-start" tabindex="-1">START</button></div>`;
+  }
+
+  if(s.type === 'message' || s.type === 'start'){
+    const lines = s.lines.map((l,i) =>
+      `<div class="body-text" data-anim style="--d:${380 + i*140}">${l}</div>`).join('');
+    inner = `
+      <div class="title-kr" data-anim="drop" style="--d:40">${s.krTitle}</div>
+      <div style="margin-top:76px; display:flex; flex-direction:column; gap:14px">${lines}</div>
+      ${s.type === 'start'
+        ? `<div data-anim style="--d:${380 + s.lines.length*140 + 120}; margin-top:64px"><button class="btn-start" tabindex="-1">START</button></div>`
+        : ''}`;
+  }
+
+  if(s.type === 'rules'){
+    const rules = s.rules.map((r,i) => `
+      <div class="rule" data-anim="slideL" style="--d:${340 + i*170}">
+        <span class="num">${pad2(i+1)}</span><span class="txt">${r}</span>
+      </div>`).join('');
+    inner = `
+      <div class="title-kr" data-anim="drop" style="--d:40">${s.krTitle}</div>
+      <div class="rule-list" style="margin-top:70px">${rules}</div>`;
+  }
+
+  if(s.type === 'quiz'){
+    const opts = (s.options || []).map((o,i) => {
+      const {mark,rest} = splitOpt(o);
+      return `<div class="option" data-anim style="--d:${560 + i*130}; --opt:${s.optSize||60}px">
+                <span class="mark">${mark}</span><span>${rest}</span>
+              </div>`;
+    }).join('');
+    inner = `
+      <div class="title-quiz" data-anim="drop" style="--d:40">QUIZ ${pad2(s.no)}</div>
+      <div data-anim style="--d:300; margin-top:78px">
+        <div class="q-text" style="font-size:${s.qSize||72}px">${s.question}</div>
+        ${s.note ? `<div class="q-note">${s.note}</div>` : ''}
+      </div>
+      ${opts ? `<div class="options" style="margin-top:88px">${opts}</div>` : ''}`;
+  }
+
+  if(s.type === 'choices'){
+    const slots = s.labels.map((t,i) => `
+      <div class="slot" data-anim style="--d:${260 + i*120}">
+        <span class="mark">${'①②③④⑤'[i]}</span>
+        <span class="label">${t}</span>
+      </div>`).join('');
+    inner = `
+      <div class="title-quiz" data-anim="drop" style="--d:40">QUIZ ${pad2(s.no)}</div>
+      <div class="option-row">${slots}</div>`;
+    return `<div class="content content--top">${inner}</div>`;
+  }
+
+  if(s.type === 'answer'){
+    const {mark,rest} = splitOpt(s.answer);
+    extra = s.blank
+      ? `<div class="answer-bubble answer-bubble--blank" data-anim style="--d:520">
+           <span class="mark">${mark}</span><span class="fill">${rest}</span>
+         </div>`
+      : `<div class="answer-bubble" data-anim style="--d:520">
+           <span class="mark">${mark}</span><span>${rest}</span>
+         </div>`;
+    inner = `<div class="title-quiz" data-anim="drop" style="--d:40">QUIZ ${pad2(s.no)}</div>${extra}`;
+    return `<div class="content content--top">${inner}</div>`;
+  }
+
+  return `<div class="content">${inner}</div>`;
+}
+
+$('#slides').innerHTML = SLIDES.map(s => `
+  <section class="slide" data-type="${s.type}">
+    ${propsHTML(s.props)}
+    ${groundHTML(s.ground)}
+    ${contentHTML(s)}
+  </section>`).join('');
+
+const slideEls = [...document.querySelectorAll('.slide')];
+
+// 목차
+$('#overview .grid').innerHTML = SLIDES.map((s,i) =>
+  `<button class="card" data-i="${i}"><span class="n">${pad2(i+1)}</span><span class="t">${s.nav}</span></button>`
+).join('');
+
+/* ══════════════════════════════════════════════════════════
+   5. 8비트 효과음 (오디오 파일 없이 생성)
+   ══════════════════════════════════════════════════════════ */
+let actx = null, muted = false;
+function audio(){
+  if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if(actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(freq, start, dur, vol=.14, type='square'){
+  if(muted) return;
+  try{
+    const a = audio(), t = a.currentTime + start;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + .012);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur + .02);
+  }catch(e){/* 오디오 미지원 환경 */}
+}
+const SFX = {
+  move : () => tone(660, 0, .09, .09),
+  back : () => tone(392, 0, .09, .08),
+  coin : () => { tone(988,0,.07,.13); tone(1319,.07,.28,.11); },
+  start: () => { [523,659,784,1047].forEach((f,i) => tone(f, i*.09, .2, .12)); },
+  right: () => { [784,988,1175,1568].forEach((f,i) => tone(f, i*.085, .3, .13)); tone(2093,.36,.5,.09); },
+  tick : () => tone(880, 0, .12, .12),
+  buzz : () => { tone(180,0,.2,.14,'sawtooth'); tone(140,.12,.3,.12,'sawtooth'); }
+};
+
+/* ══════════════════════════════════════════════════════════
+   6. 색종이
+   ══════════════════════════════════════════════════════════ */
+const CONF = ['#F6CE3C','#E8503C','#5CCB4E','#4FD6C8','#E8508F','#FFFFFF'];
+function confetti(n=70){
+  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  for(let i=0;i<n;i++){
+    const d = document.createElement('div');
+    d.className = 'confetti';
+    const size = 14 + Math.random()*18;
+    d.style.cssText = `width:${size}px;height:${size}px;background:${CONF[i%CONF.length]};
+      left:${Math.random()*1920}px;top:-40px;`;
+    stage.appendChild(d);
+    d.animate([
+      {transform:'translate(0,0) rotate(0deg)', opacity:1},
+      {transform:`translate(${(Math.random()-.5)*400}px, 1200px) rotate(${(Math.random()-.5)*1080}deg)`, opacity:.9}
+    ], {duration:2200 + Math.random()*1800, easing:'cubic-bezier(.3,.6,.6,1)'}).onfinish = () => d.remove();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   7. 슬라이드 진행
+   ══════════════════════════════════════════════════════════ */
+let idx = 0, locked = false;
+
+function render(){
+  slideEls.forEach(el => el.classList.remove('is-active'));
+
+  // 등장 애니메이션을 매번 다시 재생하기 위해 노드를 교체
+  const fresh = slideEls[idx].cloneNode(true);
+  slideEls[idx].replaceWith(fresh);
+  slideEls[idx] = fresh;
+  fresh.classList.add('is-active');
+
+  $('#progress .bar').style.width = ((idx+1) / TOTAL * 100) + '%';
+  $('#pagenum').textContent = `${pad2(idx+1)} / ${TOTAL}`;
+  document.querySelectorAll('#overview .card').forEach((c,i) => c.classList.toggle('now', i === idx));
+
+  const t = SLIDES[idx].type;
+  if(t === 'answer')                    setTimeout(() => { SFX.right(); confetti(); }, 520);
+  else if(t === 'title' || t === 'start') setTimeout(SFX.start, 200);
+  else if(t === 'quiz' || t === 'choices') setTimeout(SFX.coin, 300);
+}
+
+function go(n){
+  if(locked) return;
+  const target = Math.max(0, Math.min(TOTAL-1, n));
+  if(target === idx) return;
+  locked = true;
+  hideTimer();
+
+  const w = $('#wipe');
+  w.classList.remove('run'); void w.offsetWidth; w.classList.add('run');
+
+  setTimeout(() => { idx = target; render(); }, 210);
+  setTimeout(() => { locked = false; }, 480);
+}
+const next = () => { SFX.move(); go(idx+1); };
+const prev = () => { SFX.back(); go(idx-1); };
+
+/* ── 3초 카운트다운 ─────────────────── */
+let timerId = null;
+function hideTimer(){
+  clearTimeout(timerId);
+  const n = $('#timer .num');
+  $('#timer').classList.remove('show');
+  n.classList.remove('small');
+}
+function runTimer(){
+  clearTimeout(timerId);
+  const box = $('#timer'), num = box.querySelector('.num');
+  let n = 3;
+  box.classList.add('show');
+  num.classList.remove('small');
+  const step = () => {
+    num.textContent = n;
+    num.style.animation = 'none'; void num.offsetWidth; num.style.animation = '';
+    SFX.tick();
+    n--;
+    if(n >= 1){ timerId = setTimeout(step, 1000); }
+    else timerId = setTimeout(() => {
+      num.textContent = 'TIME!';
+      num.classList.add('small');
+      SFX.buzz();
+      timerId = setTimeout(hideTimer, 1000);
+    }, 1000);
+  };
+  step();
+}
+
+/* ── 목차 ──────────────────────────── */
+const ov = $('#overview');
+function toggleOverview(force){
+  const show = force !== undefined ? force : !ov.classList.contains('show');
+  ov.classList.toggle('show', show);
+}
+ov.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if(!card) { toggleOverview(false); return; }
+  toggleOverview(false);
+  SFX.coin();
+  go(+card.dataset.i);
+});
+
+/* ══════════════════════════════════════════════════════════
+   8. 조작
+   ══════════════════════════════════════════════════════════ */
+const NEXT_KEYS = ['ArrowRight','ArrowDown','PageDown',' ','Enter','Spacebar'];
+const PREV_KEYS = ['ArrowLeft','ArrowUp','PageUp','Backspace'];
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ toggleOverview(false); hideTimer(); return; }
+  if(ov.classList.contains('show') && e.key !== 'o' && e.key !== 'O') return;
+
+  if(NEXT_KEYS.includes(e.key)){ e.preventDefault(); next(); return; }
+  if(PREV_KEYS.includes(e.key)){ e.preventDefault(); prev(); return; }
+
+  switch(e.key.toLowerCase()){
+    case 'home': go(0); break;
+    case 'end':  go(TOTAL-1); break;
+    case 'f':    toggleFull(); break;
+    case 'o':    toggleOverview(); break;
+    case 'm':    muted = !muted; $('#mute').classList.toggle('show', muted); break;
+    case 't':    if(SLIDES[idx].type === 'quiz' || SLIDES[idx].type === 'choices') runTimer(); break;
+    case 'h':
+    case '?':    flashHelp(6000); break;
+  }
+});
+
+stage.addEventListener('click', e => {
+  if(ov.classList.contains('show')) return;
+  const r = stage.getBoundingClientRect();
+  ((e.clientX - r.left) < r.width * 0.22) ? prev() : next();
+});
+
+let tx = 0;
+stage.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, {passive:true});
+stage.addEventListener('touchend', e => {
+  if(ov.classList.contains('show')) return;
+  const d = e.changedTouches[0].clientX - tx;
+  if(Math.abs(d) > 60) (d < 0 ? next() : prev());
+}, {passive:true});
+
+function toggleFull(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+
+const helpEl = $('#help');
+helpEl.innerHTML = `<kbd>→</kbd> 다음 · <kbd>←</kbd> 이전 · <kbd>F</kbd> 전체화면 · <kbd>T</kbd> 3초타이머 · <kbd>O</kbd> 목차 · <kbd>M</kbd> 음소거`;
+let helpTid;
+function flashHelp(ms=4000){
+  helpEl.classList.add('show');
+  clearTimeout(helpTid);
+  helpTid = setTimeout(() => helpEl.classList.remove('show'), ms);
+}
+document.addEventListener('mousemove', () => flashHelp(2600));
+
+/* ══════════════════════════════════════════════════════════
+   9. 화면 맞춤
+   ══════════════════════════════════════════════════════════ */
+function fit(){
+  stage.style.transform = `scale(${Math.min(window.innerWidth/1920, window.innerHeight/1080)})`;
+}
+window.addEventListener('resize', fit);
+fit();
+render();
+flashHelp(6000);
+</script>
+</body>
+</html>

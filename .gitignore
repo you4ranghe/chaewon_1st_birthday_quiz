@@ -1,0 +1,7 @@
+# 빌드 백업/임시
+_source/index.bak.html
+*.bak
+
+# Windows
+Thumbs.db
+desktop.ini
