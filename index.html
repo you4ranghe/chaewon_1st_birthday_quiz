@@ -182,11 +182,12 @@ html,body{
 }
 .hero.jump .jumper{animation:heroJump .72s cubic-bezier(.3,.05,.4,1);}
 
-/* 배경에서 돌아다니는 주인공은 점프가 조금 더 가볍습니다 */
+/* 배경에서 돌아다니는 주인공.
+   블록 높이가 무대마다 달라서 점프 높이를 --hop 변수로 받습니다. */
 @keyframes strollJump{
   0%  {transform:translateY(0);}
-  44% {transform:translateY(-204px);}
-  56% {transform:translateY(-204px);}
+  44% {transform:translateY(var(--hop,-204px));}
+  56% {transform:translateY(var(--hop,-204px));}
   100%{transform:translateY(0);}
 }
 .hero.hop .jumper{animation:strollJump .82s cubic-bezier(.3,.05,.4,1);}
@@ -222,6 +223,16 @@ html,body{
 .bbox.opened .q{opacity:0;}
 .bbox.opened .used{opacity:1;}
 .bbox.bump{animation:boxBump .42s cubic-bezier(.3,0,.4,1);}
+
+/* 주워 먹는 코인 */
+.amb-coin{position:absolute; z-index:8; image-rendering:pixelated;}
+.amb-coin .spin{display:block; animation:spin 1.8s steps(8,end) infinite;}
+.amb-coin .spin svg{display:block; width:100%; height:auto;}
+.amb-coin.taken{animation:coinTaken .55s ease-out forwards;}
+@keyframes coinTaken{
+  0%  {transform:translateY(0) scale(1); opacity:1;}
+  100%{transform:translateY(-110px) scale(1.35); opacity:0;}
+}
 
 /* 나비 · 반딧불이 */
 .flutter{position:absolute; z-index:7; image-rendering:pixelated;}
@@ -1458,11 +1469,42 @@ function confetti(n=80){
    ── 주인공이 천천히 돌아다니다 ?블록을 치고, 방해꾼을 밟습니다.
    ── 소리는 내지 않습니다. 진행에 방해가 되면 안 되니까요.
    ══════════════════════════════════════════════════════════ */
-const AMB = {actors:[], boxes:[], raf:null, last:0};
+const AMB = {actors:[], boxes:[], coins:[], raf:null, last:0, lastScene:-1};
+
+const rnd  = (a,b) => a + Math.random() * (b - a);
+const rint = (a,b) => Math.floor(rnd(a, b + 1));
+const coin = arr => arr[rint(0, arr.length - 1)];
+
+/* ── 무대 구성 5종 ──────────────────────────────
+   블록은 본문 글자를 피해 좌우 가장자리(x<240 / x>1680)에만 놓습니다.
+   높이(b)는 무대마다 달라서 주인공의 점프 높이도 함께 달라집니다.  */
+const SCENES = [
+  { id:'낮은 두 칸',
+    boxes:[{x:110,b:520},{x:1706,b:520}], foes:1, speed:74, coins:0 },
+
+  { id:'높은 두 칸',
+    boxes:[{x:76,b:648},{x:1740,b:648}],  foes:1, speed:66, coins:2 },
+
+  { id:'계단',
+    boxes:[{x:40,b:452},{x:186,b:606},{x:1720,b:530}], foes:2, speed:82, coins:0 },
+
+  { id:'외길',
+    boxes:[{x:140,b:566}], foes:2, speed:90, coins:3 },
+
+  { id:'넓은 무대',
+    boxes:[{x:30,b:486},{x:1800,b:632}],  foes:3, speed:60, coins:2 }
+];
+
+function pickScene(){
+  let i;
+  do { i = rint(0, SCENES.length - 1); } while(SCENES.length > 1 && i === AMB.lastScene);
+  AMB.lastScene = i;
+  return SCENES[i];
+}
 
 function stopAmbient(){
   if(AMB.raf) cancelAnimationFrame(AMB.raf);
-  AMB.raf = null; AMB.actors = []; AMB.boxes = [];
+  AMB.raf = null; AMB.actors = []; AMB.boxes = []; AMB.coins = [];
 }
 
 /* 블록에서 코인이 솟구칩니다 */
@@ -1488,7 +1530,8 @@ function makeFoe(el, x, dir){
     <div class="fr gflat">${ART.foeFlat}</div>
   </div>`;
   el.appendChild(f);
-  return {el:f, flip:f.querySelector('.flip'), x, w:104, vx:46*dir, type:'foe', dead:false};
+  return {el:f, flip:f.querySelector('.flip'), x, w:104,
+          vx:rnd(36,58) * dir, type:'foe', dead:false};
 }
 
 function squash(a){
@@ -1499,30 +1542,32 @@ function squash(a){
     a.el.classList.remove('squash');
     const fromRight = Math.random() < .5;
     a.x  = fromRight ? 1790 : 30;
-    a.vx = fromRight ? -46 : 46;
+    a.vx = rnd(36,58) * (fromRight ? -1 : 1);
     a.el.style.left = a.x + 'px';
     a.dead = false;
-  }, 4200);
+  }, rnd(3200, 5600));
 }
 
 function heroHop(hero, box){
   hero.jumping = true;
   hero.el.classList.remove('walk');
+  // 노릴 블록 높이에 맞춰 점프 높이를 정합니다 (머리가 블록 아랫면에 닿게)
+  hero.el.style.setProperty('--hop', (box ? -(box.bottom - 318) : -196) + 'px');
   hero.el.classList.add('hop');
 
   setTimeout(() => {                        // 점프 정점에서 블록을 칩니다
     if(!box || !AMB.boxes.includes(box)) return;
     box.el.classList.remove('bump'); void box.el.offsetWidth; box.el.classList.add('bump');
     box.el.classList.add('opened');
-    box.opened = true; box.timer = 9;
+    box.opened = true; box.timer = rnd(7, 12);
     popCoinAt(box.el, box.el.parentElement);
   }, 380);
 
   setTimeout(() => {
     hero.el.classList.remove('hop');
-    hero.el.classList.add('walk');
+    if(hero.mode === 'walk') hero.el.classList.add('walk');
     hero.jumping = false;
-    hero.cd = 2.2;
+    hero.cd = rnd(1.6, 3.2);
   }, 860);
 }
 
@@ -1531,17 +1576,30 @@ function addFlutter(el, theme){
     for(let i=0;i<3;i++){
       const d = document.createElement('div');
       d.className = 'firefly';
-      d.style.cssText = `left:${70 + i*140}px; top:${300 + i*130}px;
-        animation-delay:${-i*6.5}s, ${-i*1.1}s;`;
+      d.style.cssText = `left:${rnd(40,320)}px; top:${rnd(250,560)}px;
+        animation-delay:${-rnd(0,19)}s, ${-rnd(0,2.4)}s;`;
       el.appendChild(d);
     }
   }else if(theme !== 'castle'){
-    const b = document.createElement('div');
-    b.className = 'flutter';
-    b.style.cssText = 'left:-60px; top:236px; width:74px;';
-    b.innerHTML = `<span class="body">${ART.butterfly}</span>`;
-    el.appendChild(b);
+    for(let i=0, n=rint(1,2); i<n; i++){
+      const b = document.createElement('div');
+      b.className = 'flutter';
+      b.style.cssText = `left:-60px; top:${rnd(196,340)}px; width:${rnd(58,84)}px;
+        animation-delay:${-rnd(0,26)}s; animation-duration:${rnd(22,32)}s;`;
+      b.innerHTML = `<span class="body">${ART.butterfly}</span>`;
+      el.appendChild(b);
+    }
   }
+}
+
+/* 지나가다 주워 먹는 코인 */
+function makeCoin(el, x){
+  const c = document.createElement('div');
+  c.className = 'amb-coin';
+  c.style.cssText = `left:${x}px; bottom:${rnd(190,260)}px; width:64px;`;
+  c.innerHTML = `<span class="spin">${ART.coin}</span>`;
+  el.appendChild(c);
+  return {el:c, cx:x + 32, taken:false, timer:0};
 }
 
 function setupAmbient(el, s){
@@ -1551,26 +1609,38 @@ function setupAmbient(el, s){
   addFlutter(el, s.theme);
   if(!s.walker) return;
 
-  // 좌우 끝에 ?블록 — 본문 글자와 겹치지 않는 자리입니다
-  AMB.boxes = [110, 1706].map(x => {
+  const sc = pickScene();
+
+  AMB.boxes = sc.boxes.map(p => {
     const b = document.createElement('div');
     b.className = 'bbox';
-    b.style.cssText = `left:${x}px; bottom:520px; width:104px;`;
+    b.style.cssText = `left:${p.x}px; bottom:${p.b}px; width:104px;`;
     b.innerHTML = `<div class="face q">${ART.qblock}</div><div class="face used">${ART.qblockUsed}</div>`;
     el.appendChild(b);
-    return {el:b, cx:x + 52, opened:false, timer:0};
+    return {el:b, cx:p.x + 52, bottom:p.b, opened:false, timer:0};
   });
 
+  for(let i=0;i<sc.coins;i++) AMB.coins.push(makeCoin(el, rnd(420,1420)));
+
+  // 주인공은 매번 다른 자리에서 다른 방향으로 출발합니다
+  const startX = rnd(260, 1500);
+  const dir    = Math.random() < .5 ? 1 : -1;
   const h = document.createElement('div');
   h.className = 'hero walk amb-hero';
-  h.style.cssText = 'bottom:150px; width:122px; left:300px;';
+  h.style.cssText = `bottom:150px; width:122px; left:${startX}px;`;
   h.innerHTML = heroInner();
   el.appendChild(h);
-  AMB.actors.push({el:h, flip:h.querySelector('.flip'), x:300, w:122, vx:74,
-                   type:'hero', jumping:false, cd:2});
+  AMB.actors.push({
+    el:h, flip:h.querySelector('.flip'),
+    x:startX, w:122, vx:sc.speed * dir, base:sc.speed,
+    type:'hero', jumping:false, cd:rnd(.6,2.4),
+    mode:'walk', modeT:rnd(5,11)
+  });
 
-  const foes = s.foes ?? 1;
-  for(let i=0;i<foes;i++) AMB.actors.push(makeFoe(el, 1240 + i*280, -1));
+  for(let i=0;i<sc.foes;i++){
+    const fromRight = Math.random() < .6;
+    AMB.actors.push(makeFoe(el, fromRight ? rnd(1100,1800) : rnd(120,700), fromRight ? -1 : 1));
+  }
 
   AMB.last = performance.now();
   AMB.raf = requestAnimationFrame(ambTick);
@@ -1585,12 +1655,17 @@ function ambTick(ts){
     b.timer -= dt;
     if(b.timer <= 0){ b.opened = false; b.el.classList.remove('opened'); }
   }
+  for(const c of AMB.coins){                // 주워 먹은 코인도 다시 나타납니다
+    if(!c.taken) continue;
+    c.timer -= dt;
+    if(c.timer <= 0){ c.taken = false; c.el.classList.remove('taken'); }
+  }
 
   let hero = null;
   for(const a of AMB.actors){
     if(a.type === 'hero') hero = a;
     if(a.dead) continue;
-    a.x += a.vx * dt;
+    if(!(a.type === 'hero' && a.mode === 'idle' && !a.jumping)) a.x += a.vx * dt;
     const maxX = 1920 - a.w - 16;
     if(a.x < 16){   a.x = 16;   a.vx =  Math.abs(a.vx); }
     if(a.x > maxX){ a.x = maxX; a.vx = -Math.abs(a.vx); }
@@ -1600,20 +1675,45 @@ function ambTick(ts){
 
   if(hero){
     const hc = hero.x + hero.w/2;
+
+    // 걷다가 이따금 멈춰 서서 두리번거립니다
+    hero.modeT -= dt;
+    if(hero.modeT <= 0 && !hero.jumping){
+      if(hero.mode === 'walk'){
+        hero.mode = 'idle';  hero.modeT = rnd(1.4, 2.8);
+        hero.el.classList.remove('walk');
+      }else{
+        hero.mode = 'walk';  hero.modeT = rnd(6, 13);
+        hero.el.classList.add('walk');
+        if(Math.random() < .4) hero.vx = -hero.vx;   // 가끔 방향도 바꿉니다
+      }
+    }
+
+    for(const c of AMB.coins){              // 코인을 지나가면 주워 먹습니다
+      if(c.taken) continue;
+      if(Math.abs(hc - c.cx) < 56){
+        c.taken = true; c.timer = rnd(6, 10);
+        c.el.classList.add('taken');
+      }
+    }
+
     if(!hero.jumping){
       hero.cd -= dt;
       if(hero.cd <= 0){
         let hopped = false;
-        for(const b of AMB.boxes){        // 블록 앞에 서면 쳐서 코인을 꺼냅니다
-          if(!b.opened && Math.abs(hc - b.cx) < 30){ heroHop(hero, b); hopped = true; break; }
+        for(const b of AMB.boxes){          // 블록 앞에 서면 쳐서 코인을 꺼냅니다
+          if(!b.opened && Math.abs(hc - b.cx) < 34){ heroHop(hero, b); hopped = true; break; }
         }
         if(!hopped) for(const a of AMB.actors){   // 방해꾼을 만나면 뛰어올라 밟습니다
           if(a.type !== 'foe' || a.dead) continue;
-          if(Math.abs(hc - (a.x + a.w/2)) < 96){ heroHop(hero, null); break; }
+          if(Math.abs(hc - (a.x + a.w/2)) < 96){ heroHop(hero, null); hopped = true; break; }
+        }
+        if(!hopped && hero.mode === 'walk' && Math.random() < .006){
+          heroHop(hero, null);              // 아무것도 없어도 가끔 신나서 뜁니다
         }
       }
     }else{
-      for(const a of AMB.actors){          // 점프 중에 방해꾼을 밟습니다
+      for(const a of AMB.actors){           // 점프 중에 방해꾼을 밟습니다
         if(a.type !== 'foe' || a.dead) continue;
         if(Math.abs(hc - (a.x + a.w/2)) < 64) squash(a);
       }
