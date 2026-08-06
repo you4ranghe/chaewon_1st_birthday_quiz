@@ -46,12 +46,24 @@ html,body{
    ══════════════════════════════════════ */
 #viewport{
   position:fixed; inset:0;
-  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
   background:#0A0F1E;
 }
+/* 노치·홈바를 피한 실제 표시 영역. 무대 크기는 이 영역을 기준으로 계산합니다. */
+#safe{
+  position:absolute;
+  top:env(safe-area-inset-top,0px);
+  right:env(safe-area-inset-right,0px);
+  bottom:env(safe-area-inset-bottom,0px);
+  left:env(safe-area-inset-left,0px);
+}
 #stage{
-  position:relative;
+  /* flex 아이템으로 두면 화면이 1920px보다 좁을 때 박스 자체가 줄어들어
+     내부가 잘립니다. 절대 배치 + translate로 정확히 가운데에 놓습니다. */
+  position:absolute;
+  left:50%; top:50%;
   width:1920px; height:1080px;
+  transform:translate(-50%,-50%);
   transform-origin:center center;
   overflow:hidden;
   background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-bot) 78%);
@@ -607,6 +619,7 @@ html,body{
 <body>
 
 <div id="viewport">
+ <div id="safe">
   <div id="stage">
 
     <div class="cloud c1"></div>
@@ -626,6 +639,7 @@ html,body{
     <div id="help"></div>
     <div id="progress"><div class="bar"></div></div>
   </div>
+ </div>
 </div>
 
 <div id="rotate">
@@ -1317,13 +1331,16 @@ document.addEventListener('mousemove', () => flashHelp(2600));
 /* ══════════════════════════════════════════════════════════
    9. 화면 맞춤
    ══════════════════════════════════════════════════════════ */
+const safeEl = $('#safe');
 function fit(){
-  // iOS Safari는 주소창이 나타났다 사라지며 높이가 바뀝니다.
-  // visualViewport가 있으면 실제로 보이는 영역을 기준으로 잡습니다.
+  // 기준 ① 노치·홈바를 뺀 표시 영역
+  const r = safeEl.getBoundingClientRect();
+  // 기준 ② iOS Safari는 주소창이 나타났다 사라지며 실제 보이는 높이가 달라집니다
   const vv = window.visualViewport;
-  const w = vv ? vv.width  : window.innerWidth;
-  const h = vv ? vv.height : window.innerHeight;
-  stage.style.transform = `scale(${Math.min(w/1920, h/1080)})`;
+  const w = Math.min(r.width,  vv ? vv.width  : Infinity);
+  const h = Math.min(r.height, vv ? vv.height : Infinity);
+  const s = Math.min(w/1920, h/1080);
+  stage.style.transform = `translate(-50%,-50%) scale(${s})`;
 }
 window.addEventListener('resize', fit);
 window.visualViewport?.addEventListener('resize', fit);
