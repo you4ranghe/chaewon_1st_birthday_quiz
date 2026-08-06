@@ -2,30 +2,22 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>채원이 첫 돌잔치 QUIZ GAME</title>
 
 <style>
 /*__EMBED_FONTS__*/
 
 :root{
-  /* ── 팔레트 ─────────────────────────── */
-  --sky-top:#4FA8F0;
-  --sky-bot:#8FD4FF;
+  /* ── 공통 팔레트 ─────────────────── */
   --ink:#16214A;
   --ink-2:#0C1330;
   --gold:#F6CE3C;
   --gold-d:#D9A21B;
   --red:#E8503C;
   --red-d:#B32F20;
-  --grass:#5CCB4E;
-  --grass-d:#2F9B36;
-  --dirt:#B4571F;
-  --dirt-d:#7C3A12;
-  --cloud:#FFFFFF;
   --paper:#FFFDF5;
 
-  /* ── 타이포 ─────────────────────────── */
   --f-pixel:'PressStart2P','Galmuri11',monospace;
   --f-kr-pixel:'Galmuri11','PressStart2P','Malgun Gothic',sans-serif;
   --f-body:'PretendardXB','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
@@ -35,584 +27,481 @@
 
 html,body{
   height:100%;
-  background:#0A0F1E;
+  background:#000;
   overflow:hidden;
   font-family:var(--f-body);
   -webkit-font-smoothing:antialiased;
 }
 
 /* ══════════════════════════════════════
-   무대(Stage) — 1920×1080 고정 후 화면에 맞게 스케일
+   무대 — 1920×1080 고정 후 화면에 맞춰 축소
    ══════════════════════════════════════ */
-#viewport{
-  position:fixed; inset:0;
-  overflow:hidden;
-  background:#0A0F1E;
-}
-/* 노치·홈바를 피한 실제 표시 영역. 무대 크기는 이 영역을 기준으로 계산합니다. */
+#viewport{position:fixed; inset:0; overflow:hidden; background:#000;}
 #safe{
   position:absolute;
-  top:env(safe-area-inset-top,0px);
-  right:env(safe-area-inset-right,0px);
-  bottom:env(safe-area-inset-bottom,0px);
-  left:env(safe-area-inset-left,0px);
+  top:env(safe-area-inset-top,0px);    right:env(safe-area-inset-right,0px);
+  bottom:env(safe-area-inset-bottom,0px); left:env(safe-area-inset-left,0px);
 }
 #stage{
-  /* flex 아이템으로 두면 화면이 1920px보다 좁을 때 박스 자체가 줄어들어
-     내부가 잘립니다. 절대 배치 + translate로 정확히 가운데에 놓습니다. */
-  position:absolute;
-  left:50%; top:50%;
+  position:absolute; left:50%; top:50%;
   width:1920px; height:1080px;
   transform:translate(-50%,-50%);
   transform-origin:center center;
   overflow:hidden;
-  background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-bot) 78%);
-  box-shadow:0 0 80px rgba(0,0,0,.6);
+  background:#0A0E28;
   cursor:default;
-  touch-action:manipulation;   /* 더블탭 확대 방지 */
+  touch-action:manipulation;
 }
 
 /* ══════════════════════════════════════
-   하늘 · 구름
+   테마 — 월드마다 하늘·지면·글자색이 통째로 바뀝니다
    ══════════════════════════════════════ */
-.cloud{
-  position:absolute;
-  image-rendering:pixelated;
-  opacity:.95;
-  will-change:transform;
+.slide{
+  position:absolute; inset:0;
+  display:none;
+  --text:#16214A;          /* 본문 글자색 */
+  --text-sh:rgba(255,255,255,.45);
+  --panel:#FFFDF5;
+  --panel-line:#16214A;
 }
-.cloud svg{display:block;width:100%;height:auto;}
-@keyframes drift{
-  from{transform:translateX(2100px);}
-  to  {transform:translateX(-520px);}
-}
-.c1{width:340px; top:150px;  animation:drift 82s linear infinite;}
-.c2{width:220px; top:330px;  animation:drift 118s linear infinite; animation-delay:-40s; opacity:.8;}
-.c3{width:420px; top:70px;   animation:drift 145s linear infinite; animation-delay:-95s; opacity:.7;}
-.c4{width:260px; top:470px;  animation:drift 100s linear infinite; animation-delay:-70s; opacity:.55;}
-
-/* ══════════════════════════════════════
-   HUD — 하트 3개
-   ══════════════════════════════════════ */
-#hud{
-  position:absolute; top:56px; right:80px;
-  display:flex; gap:22px; z-index:60;
-}
-#hud .heart{width:62px; image-rendering:pixelated; animation:beat 1.5s ease-in-out infinite;}
-#hud .heart:nth-child(2){animation-delay:.18s;}
-#hud .heart:nth-child(3){animation-delay:.36s;}
-@keyframes beat{
-  0%,100%{transform:scale(1);}
-  14%{transform:scale(1.18);}
-  28%{transform:scale(1);}
-  42%{transform:scale(1.1);}
-}
-
-/* ══════════════════════════════════════
-   슬라이드
-   ══════════════════════════════════════ */
-#slides{position:absolute; inset:0;}
-.slide{position:absolute; inset:0; display:none;}
 .slide.is-active{display:block;}
 
-/* ── 지면 ─────────────────────────── */
-.ground{
-  position:absolute; left:0; right:0; bottom:0;
-  image-rendering:pixelated;
-  z-index:5;
+.slide[data-theme="dawn"]      {background:linear-gradient(180deg,#FFB870 0%,#FF9E6B 18%,#7EC0F5 62%,#A8DBFF 100%);}
+.slide[data-theme="overworld"] {background:linear-gradient(180deg,#4FA8F0 0%,#8FD4FF 78%);}
+.slide[data-theme="underground"]{
+  background:#07091C;
+  --text:#EAF2FF;
+  --text-sh:rgba(0,0,0,.5);
+  --panel:#101A44;
+  --panel-line:#5C86FF;
 }
-.ground--grass{height:150px;}
-.ground--grass .turf{
-  position:absolute; top:0; left:0; right:0; height:34px;
-  background:var(--grass);
-  border-top:8px solid #7EE06B;
+.slide[data-theme="castle"]{
+  background:linear-gradient(180deg,#140B2E 0%,#2B1B52 60%,#43276B 100%);
+  --text:#FFF3D6;
+  --text-sh:rgba(0,0,0,.5);
+  --panel:#231544;
+  --panel-line:#F6CE3C;
 }
-.ground--grass .turf::after{
+
+/* ══════════════════════════════════════
+   배경 요소
+   ══════════════════════════════════════ */
+.layer{position:absolute; inset:0; pointer-events:none;}
+.px{position:absolute; image-rendering:pixelated;}
+.px svg{display:block; width:100%; height:auto;}
+
+/* 구름 */
+@keyframes drift{from{transform:translateX(2100px);} to{transform:translateX(-560px);}}
+.cloud{position:absolute; image-rendering:pixelated; opacity:.95;}
+.cloud svg{display:block; width:100%; height:auto;}
+.cl-a{width:340px; top:140px; animation:drift 86s linear infinite;}
+.cl-b{width:230px; top:320px; animation:drift 124s linear infinite; animation-delay:-45s; opacity:.85;}
+.cl-c{width:420px; top:66px;  animation:drift 150s linear infinite; animation-delay:-98s; opacity:.7;}
+
+/* 지면 */
+.ground{position:absolute; left:0; right:0; bottom:0; image-rendering:pixelated; z-index:5;}
+.ceiling{position:absolute; left:0; right:0; top:0; image-rendering:pixelated; z-index:5;}
+
+.g-grass{height:150px;}
+.g-grass .turf{position:absolute; top:0; left:0; right:0; height:34px; background:#5CCB4E; border-top:8px solid #7EE06B;}
+.g-grass .turf::after{
   content:''; position:absolute; left:0; right:0; top:-20px; height:20px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' shape-rendering='crispEdges'%3E%3Crect x='0' y='10' width='10' height='10' fill='%237EE06B'/%3E%3Crect x='14' y='4' width='8' height='16' fill='%237EE06B'/%3E%3Crect x='26' y='12' width='10' height='8' fill='%237EE06B'/%3E%3C/svg%3E");
   background-repeat:repeat-x;
 }
-.ground--grass .soil{
-  position:absolute; top:34px; left:0; right:0; bottom:0;
-  background:var(--dirt);
+.g-grass .soil{
+  position:absolute; top:34px; left:0; right:0; bottom:0; background:#B4571F;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' shape-rendering='crispEdges'%3E%3Crect x='8' y='12' width='8' height='8' fill='%237C3A12'/%3E%3Crect x='38' y='30' width='8' height='8' fill='%237C3A12'/%3E%3Crect x='20' y='46' width='8' height='8' fill='%237C3A12'/%3E%3Crect x='50' y='6' width='6' height='6' fill='%23C9702F'/%3E%3C/svg%3E");
 }
 
-.ground--stone{
-  height:150px;
-  background:#8B94AE;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' shape-rendering='crispEdges'%3E%3Crect width='120' height='60' fill='%238B94AE'/%3E%3Crect y='0' width='120' height='6' fill='%233A4468'/%3E%3Crect y='30' width='120' height='6' fill='%233A4468'/%3E%3Crect x='0' y='6' width='6' height='24' fill='%233A4468'/%3E%3Crect x='60' y='6' width='6' height='24' fill='%233A4468'/%3E%3Crect x='30' y='36' width='6' height='24' fill='%233A4468'/%3E%3Crect x='90' y='36' width='6' height='24' fill='%233A4468'/%3E%3Crect x='12' y='12' width='12' height='8' fill='%23A6AEC6'/%3E%3Crect x='72' y='14' width='16' height='8' fill='%23A6AEC6'/%3E%3Crect x='42' y='42' width='14' height='8' fill='%23A6AEC6'/%3E%3C/svg%3E");
-  border-top:8px solid #3A4468;
+/* 지하 — 파란 벽돌 */
+.g-cave, .c-cave{
+  background:#2E5CC8;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' shape-rendering='crispEdges'%3E%3Crect width='120' height='60' fill='%232E5CC8'/%3E%3Crect y='0' width='120' height='6' fill='%23101E5E'/%3E%3Crect y='30' width='120' height='6' fill='%23101E5E'/%3E%3Crect x='0' y='6' width='6' height='24' fill='%23101E5E'/%3E%3Crect x='60' y='6' width='6' height='24' fill='%23101E5E'/%3E%3Crect x='30' y='36' width='6' height='24' fill='%23101E5E'/%3E%3Crect x='90' y='36' width='6' height='24' fill='%23101E5E'/%3E%3Crect x='8' y='10' width='14' height='6' fill='%235C86FF'/%3E%3Crect x='68' y='12' width='16' height='6' fill='%235C86FF'/%3E%3Crect x='38' y='40' width='14' height='6' fill='%235C86FF'/%3E%3C/svg%3E");
+}
+.g-cave{height:150px; border-top:8px solid #101E5E;}
+.c-cave{height:96px;  border-bottom:8px solid #101E5E;}
+
+/* 성 — 돌바닥 */
+.g-stone{
+  height:150px; background:#6E6A8E; border-top:8px solid #2A2545;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' shape-rendering='crispEdges'%3E%3Crect width='120' height='60' fill='%236E6A8E'/%3E%3Crect y='0' width='120' height='6' fill='%232A2545'/%3E%3Crect y='30' width='120' height='6' fill='%232A2545'/%3E%3Crect x='0' y='6' width='6' height='24' fill='%232A2545'/%3E%3Crect x='60' y='6' width='6' height='24' fill='%232A2545'/%3E%3Crect x='30' y='36' width='6' height='24' fill='%232A2545'/%3E%3Crect x='90' y='36' width='6' height='24' fill='%232A2545'/%3E%3Crect x='12' y='12' width='14' height='8' fill='%238A85AE'/%3E%3Crect x='72' y='42' width='14' height='8' fill='%238A85AE'/%3E%3C/svg%3E");
 }
 
-.ground--brick{
-  height:150px;
-  background:#C0472F;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' shape-rendering='crispEdges'%3E%3Crect width='120' height='60' fill='%23C0472F'/%3E%3Crect y='0' width='120' height='6' fill='%237E2418'/%3E%3Crect y='30' width='120' height='6' fill='%237E2418'/%3E%3Crect x='0' y='6' width='6' height='24' fill='%237E2418'/%3E%3Crect x='60' y='6' width='6' height='24' fill='%237E2418'/%3E%3Crect x='30' y='36' width='6' height='24' fill='%237E2418'/%3E%3Crect x='90' y='36' width='6' height='24' fill='%237E2418'/%3E%3C/svg%3E");
-  border-top:8px solid #7E2418;
-}
-
-/* ── 배경 소품 ─────────────────────── */
-.prop{position:absolute; image-rendering:pixelated; z-index:6;}
-.prop svg{display:block; width:100%; height:auto;}
-
-@keyframes bob{
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-14px);}
-}
-@keyframes spin{
-  0%,100%{transform:scaleX(1);}
-  25%{transform:scaleX(.25);}
-  50%{transform:scaleX(-1);}
-  75%{transform:scaleX(.25);}
-}
-.prop--coin{animation:spin 1.8s steps(8,end) infinite;}
-.prop--float{animation:bob 2.6s ease-in-out infinite;}
-
-/* 보물 반짝임 */
+/* 반짝임 */
 .sparkle{
-  position:absolute; z-index:7;
-  width:26px; height:26px;
+  position:absolute; z-index:7; width:26px; height:26px;
   background:
-    linear-gradient(#FFF9D6 0 0) center/100% 30% no-repeat,
-    linear-gradient(#FFF9D6 0 0) center/30% 100% no-repeat;
-  animation:twinkle 1.5s ease-in-out infinite;
+    linear-gradient(#FFF9D6 0 0) center/100% 26% no-repeat,
+    linear-gradient(#FFF9D6 0 0) center/26% 100% no-repeat;
+  animation:twinkle 1.6s ease-in-out infinite;
 }
 @keyframes twinkle{
-  0%,100%{transform:scale(.4) rotate(0deg); opacity:.25;}
+  0%,100%{transform:scale(.35) rotate(0deg); opacity:.2;}
   50%    {transform:scale(1) rotate(45deg); opacity:1;}
 }
+
+/* 코인 회전 */
+@keyframes spin{
+  0%,100%{transform:scaleX(1);} 25%{transform:scaleX(.22);}
+  50%{transform:scaleX(-1);}    75%{transform:scaleX(.22);}
+}
+.anim-coin{animation:spin 1.8s steps(8,end) infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);} 50%{transform:translateY(-14px);}}
+.anim-bob{animation:bob 2.6s ease-in-out infinite;}
+
+/* ══════════════════════════════════════
+   주인공 — 걷기 2프레임 · 점프
+   ══════════════════════════════════════ */
+.hero{position:absolute; z-index:9; image-rendering:pixelated;}
+.hero .fr{position:absolute; inset:0;}
+.hero .fr svg{display:block; width:100%; height:auto;}
+.hero .f2,.hero .f3{opacity:0;}
+
+@keyframes frA{0%,49%{opacity:1;} 50%,100%{opacity:0;}}
+@keyframes frB{0%,49%{opacity:0;} 50%,100%{opacity:1;}}
+.hero.walk .f1{animation:frA .34s steps(1,end) infinite;}
+.hero.walk .f2{animation:frB .34s steps(1,end) infinite;}
+
+/* 점프 — 블록을 치러 올라갔다 내려옵니다 */
+.hero.jump .f1,.hero.jump .f2{opacity:0 !important; animation:none !important;}
+.hero.jump .f3{opacity:1;}
+@keyframes heroJump{
+  0%  {transform:translateY(0);}
+  42% {transform:translateY(-124px);}
+  54% {transform:translateY(-124px);}
+  100%{transform:translateY(0);}
+}
+.hero.jump{animation:heroJump .72s cubic-bezier(.3,.05,.4,1);}
+
+/* ══════════════════════════════════════
+   ? 블록 — 정답이 들어 있는 상자
+   ══════════════════════════════════════ */
+.qbox{position:absolute; z-index:8; image-rendering:pixelated;}
+.qbox .face{position:absolute; inset:0;}
+.qbox .face svg{display:block; width:100%; height:auto;}
+.qbox .used{opacity:0;}
+@keyframes qPulse{
+  0%,100%{filter:brightness(1);}
+  50%    {filter:brightness(1.18);}
+}
+.qbox .q{animation:qPulse 1.1s ease-in-out infinite;}
+
+@keyframes boxBump{
+  0%  {transform:translateY(0);}
+  30% {transform:translateY(-44px);}
+  100%{transform:translateY(0);}
+}
+.qbox.bump{animation:boxBump .42s cubic-bezier(.3,0,.4,1);}
+.qbox.opened .q{opacity:0; animation:none;}
+.qbox.opened .used{opacity:1;}
+
+/* 블록에서 튀어나오는 코인 */
+@keyframes coinPop{
+  0%  {transform:translateY(0) scaleX(1); opacity:0;}
+  8%  {opacity:1;}
+  45% {transform:translateY(-300px) scaleX(-1);}
+  100%{transform:translateY(-40px) scaleX(1); opacity:0;}
+}
+.pop-coin{
+  position:absolute; z-index:10; width:74px;
+  image-rendering:pixelated;
+  animation:coinPop .78s cubic-bezier(.2,.6,.5,1) forwards;
+}
+.pop-coin svg{display:block; width:100%; height:auto;}
+
+/* +1000 점수 */
+@keyframes scorePop{
+  0%  {transform:translateY(0); opacity:0;}
+  15% {opacity:1;}
+  100%{transform:translateY(-190px); opacity:0;}
+}
+.pop-score{
+  position:absolute; z-index:11;
+  font-family:var(--f-pixel); font-size:30px; color:#fff;
+  text-shadow:3px 3px 0 #000;
+  animation:scorePop 1s ease-out forwards;
+}
+
+/* ══════════════════════════════════════
+   HUD — 마리오식 정보 바
+   ══════════════════════════════════════ */
+#hud{
+  position:absolute; top:38px; left:0; right:0;
+  z-index:60;
+  display:flex; justify-content:center; gap:96px;
+  font-family:var(--f-pixel);
+  color:#fff;
+  text-shadow:4px 4px 0 rgba(0,0,0,.55);
+  pointer-events:none;
+}
+#hud .col{display:flex; flex-direction:column; align-items:center; gap:12px;}
+#hud .k{font-size:24px; letter-spacing:.06em;}
+#hud .v{font-size:28px;}
+#hud .coin-ico{width:26px; vertical-align:-3px; margin-right:6px;}
+#hud .v.blink{animation:hudBlink .5s steps(1,end) 4;}
+@keyframes hudBlink{0%,49%{color:#F6CE3C;} 50%,100%{color:#fff;}}
+#hud .lives{display:flex; gap:8px; align-items:center;}
+#hud .lives .hd{width:26px;}
 
 /* ══════════════════════════════════════
    콘텐츠
    ══════════════════════════════════════ */
 .content{
-  position:absolute; inset:0;
-  z-index:20;
+  position:absolute; inset:0; z-index:20;
   display:flex; flex-direction:column;
   align-items:center; justify-content:center;
-  padding:110px 130px 190px;
+  padding:200px 130px 210px;
   text-align:center;
 }
 .content--top{justify-content:flex-start;}
 
-/* ── 타이틀 ────────────────────────── */
 .title-kr{
-  font-family:var(--f-kr-pixel);
-  font-weight:400;
-  font-size:132px;
-  line-height:1.1;
-  color:var(--ink);
-  letter-spacing:.04em;
-  text-shadow:0 8px 0 rgba(0,0,0,.16);
+  font-family:var(--f-kr-pixel); font-weight:400;
+  font-size:126px; line-height:1.1;
+  color:var(--text); letter-spacing:.04em;
+  text-shadow:0 8px 0 rgba(0,0,0,.18);
 }
 .title-en{
-  font-family:var(--f-pixel);
-  font-size:128px;
-  line-height:1.3;
-  color:var(--gold);
-  letter-spacing:.02em;
+  font-family:var(--f-pixel); font-size:120px; line-height:1.32;
+  color:var(--gold); letter-spacing:.02em;
   text-shadow:
-     6px 0 0 var(--ink),  -6px 0 0 var(--ink),
-     0 6px 0 var(--ink),  0 -6px 0 var(--ink),
-     6px 6px 0 var(--ink), -6px -6px 0 var(--ink),
-     6px -6px 0 var(--ink), -6px 6px 0 var(--ink),
-     0 18px 0 rgba(0,0,0,.18);
+     6px 0 0 var(--ink), -6px 0 0 var(--ink), 0 6px 0 var(--ink), 0 -6px 0 var(--ink),
+     6px 6px 0 var(--ink), -6px -6px 0 var(--ink), 6px -6px 0 var(--ink), -6px 6px 0 var(--ink),
+     0 18px 0 rgba(0,0,0,.2);
 }
 .title-quiz{
-  font-family:var(--f-pixel);
-  font-size:80px;
-  color:#fff;
-  letter-spacing:.04em;
+  font-family:var(--f-pixel); font-size:72px; color:#fff; letter-spacing:.04em;
   text-shadow:
-     6px 0 0 var(--ink-2),  -6px 0 0 var(--ink-2),
-     0 6px 0 var(--ink-2),  0 -6px 0 var(--ink-2),
-     6px 6px 0 var(--ink-2), -6px -6px 0 var(--ink-2),
-     6px -6px 0 var(--ink-2), -6px 6px 0 var(--ink-2),
-     0 16px 0 rgba(0,0,0,.2);
+     6px 0 0 var(--ink-2), -6px 0 0 var(--ink-2), 0 6px 0 var(--ink-2), 0 -6px 0 var(--ink-2),
+     6px 6px 0 var(--ink-2), -6px -6px 0 var(--ink-2), 6px -6px 0 var(--ink-2), -6px 6px 0 var(--ink-2),
+     0 16px 0 rgba(0,0,0,.22);
 }
 
-.eyebrow{
-  font-weight:800;
-  font-size:44px;
-  color:var(--ink);
-  letter-spacing:-.01em;
-  opacity:.9;
-}
+.eyebrow{font-weight:800; font-size:42px; color:var(--text); opacity:.92;}
 
 .body-text{
-  font-weight:800;
-  font-size:60px;
-  line-height:1.62;
-  color:var(--ink);
-  letter-spacing:-.02em;
-  text-shadow:0 3px 0 rgba(255,255,255,.45);
+  font-weight:800; font-size:58px; line-height:1.62;
+  color:var(--text); letter-spacing:-.02em;
+  text-shadow:0 3px 0 var(--text-sh);
 }
 .body-text .hl-red{color:var(--red-d);}
+.slide[data-theme="underground"] .body-text .hl-red,
+.slide[data-theme="castle"] .body-text .hl-red{color:#FF8A72;}
 .body-text .hl-gold{
   color:var(--gold);
   text-shadow:
-    3px 0 0 var(--ink), -3px 0 0 var(--ink),
-    0 3px 0 var(--ink), 0 -3px 0 var(--ink),
-    3px 3px 0 var(--ink), -3px -3px 0 var(--ink),
-    3px -3px 0 var(--ink), -3px 3px 0 var(--ink);
+    3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink),
+    3px 3px 0 var(--ink), -3px -3px 0 var(--ink), 3px -3px 0 var(--ink), -3px 3px 0 var(--ink);
 }
 
 .q-text{
-  font-weight:800;
-  font-size:72px;
-  line-height:1.42;
-  color:var(--ink-2);
-  letter-spacing:-.03em;
-  text-shadow:0 4px 0 rgba(255,255,255,.4);
+  font-weight:800; font-size:68px; line-height:1.42;
+  color:var(--text); letter-spacing:-.03em;
+  text-shadow:0 4px 0 var(--text-sh);
 }
-.q-note{
-  font-weight:800;
-  font-size:32px;
-  color:var(--ink-2);
-  opacity:.72;
-  margin-top:18px;
-  letter-spacing:-.02em;
-}
+.q-note{font-weight:800; font-size:30px; color:var(--text); opacity:.72; margin-top:16px;}
 
 /* ── 규칙 카드 ─────────────────────── */
-.rule-list{display:flex; flex-direction:column; gap:26px; width:1420px;}
+.rule-list{display:flex; flex-direction:column; gap:24px; width:1400px;}
 .rule{
-  display:flex; align-items:center; gap:40px;
-  background:var(--paper);
-  border:8px solid var(--ink);
-  border-radius:28px;
-  padding:30px 48px;
-  box-shadow:0 10px 0 rgba(22,33,74,.28);
-  text-align:left;
+  display:flex; align-items:center; gap:36px;
+  background:var(--panel); border:8px solid var(--panel-line); border-radius:26px;
+  padding:26px 44px; box-shadow:0 10px 0 rgba(0,0,0,.28); text-align:left;
 }
-.rule .num{
-  font-family:var(--f-pixel);
-  font-size:36px;
-  color:var(--red);
-  flex:0 0 auto;
-}
-.rule .txt{
-  font-weight:800;
-  font-size:56px;
-  color:var(--ink);
-  letter-spacing:-.03em;
-}
+.rule .num{font-family:var(--f-pixel); font-size:34px; color:var(--red); flex:0 0 auto;}
+.rule .txt{font-weight:800; font-size:52px; color:var(--text); letter-spacing:-.03em;}
 .rule .txt em{font-style:normal; color:var(--red-d);}
+.slide[data-theme="underground"] .rule .txt em{color:#FFC46B;}
 
-/* ── 보기 ──────────────────────────── */
-.options{
-  display:flex; flex-wrap:wrap;
-  justify-content:center;
-  gap:26px 48px;
-  max-width:1600px;
-}
+/* ── 보기 — ?블록 위에 얹힌 카드 ───── */
+.options{display:flex; flex-wrap:wrap; justify-content:center; gap:22px 34px; max-width:1540px;}
 .option{
   display:flex; align-items:center; gap:16px;
-  font-weight:800;
-  font-size:var(--opt,60px);
-  color:var(--ink-2);
-  letter-spacing:-.02em;
-  padding:6px 20px;
-  text-shadow:0 3px 0 rgba(255,255,255,.5);
+  background:var(--panel);
+  border:6px solid var(--panel-line);
+  border-radius:18px;
+  padding:12px 30px 14px 14px;
+  box-shadow:0 8px 0 rgba(0,0,0,.26);
+  font-weight:800; font-size:var(--opt,54px);
+  color:var(--text); letter-spacing:-.02em;
 }
-.mark{
-  display:inline-flex; align-items:center; justify-content:center;
-  flex:0 0 auto;
-  width:calc(var(--opt,60px) * 1.22);
-  height:calc(var(--opt,60px) * 1.22);
-  border:6px solid var(--ink-2);
-  border-radius:50%;
-  font-size:calc(var(--opt,60px) * .78);
-  line-height:1;
-  background:rgba(255,255,255,.32);
-  text-shadow:none;
+.option .blk{width:calc(var(--opt,54px) * 1.16); flex:0 0 auto; image-rendering:pixelated;}
+.option .blk svg{display:block; width:100%; height:auto;}
+.option .no{
+  font-family:var(--f-pixel);
+  font-size:calc(var(--opt,54px) * .5);
+  color:var(--red); flex:0 0 auto;
 }
 
-/* 보기 전용 슬라이드 (번호만 가로 배치) */
-.option-row{
-  display:flex; justify-content:space-between;
-  width:1600px; margin-top:40px;
-}
-.option-row .slot{
-  display:flex; flex-direction:column; align-items:center; gap:22px;
-}
-.option-row .mark{
-  --opt:78px;
-  background:rgba(255,255,255,.4);
-}
-.option-row .label{
-  font-weight:800; font-size:46px; color:var(--ink-2);
-  letter-spacing:-.02em; min-height:56px;
-}
+/* 보기 전용 화면 (Q9) */
+.option-row{display:flex; justify-content:space-between; width:1580px; margin-top:56px;}
+.option-row .slot{display:flex; flex-direction:column; align-items:center; gap:20px;}
+.option-row .blk{width:112px; image-rendering:pixelated;}
+.option-row .blk svg{display:block; width:100%; height:auto;}
+.option-row .no{font-family:var(--f-pixel); font-size:34px; color:#fff; text-shadow:3px 3px 0 var(--ink-2);}
+.option-row .label{font-weight:800; font-size:42px; color:var(--text); min-height:52px;}
 
 /* ── 정답 말풍선 ───────────────────── */
+/* 주인공과 ?블록은 왼쪽, 정답 말풍선은 오른쪽에 놓아 서로 겹치지 않게 합니다 */
 .answer-bubble{
-  position:absolute;
-  left:640px; bottom:400px;
-  background:var(--paper);
-  border:10px solid var(--ink);
-  border-radius:26px;
-  padding:44px 90px;
-  box-shadow:0 12px 0 var(--gold-d), 0 12px 0 8px rgba(22,33,74,.18);
-  font-weight:800;
-  font-size:78px;
-  color:var(--ink-2);
-  letter-spacing:-.02em;
-  display:flex; align-items:center; gap:24px;
+  position:absolute; left:760px; top:398px;
+  background:var(--paper); border:10px solid var(--ink); border-radius:26px;
+  padding:34px 68px;
+  box-shadow:0 12px 0 var(--gold-d), 0 12px 0 8px rgba(0,0,0,.25);
+  font-weight:800; font-size:66px; color:var(--ink-2); letter-spacing:-.02em;
+  display:flex; align-items:center; gap:22px;
+  white-space:nowrap;
+  opacity:0;
 }
-.answer-bubble::after{
-  content:'';
-  position:absolute; left:44px; bottom:-46px;
-  width:0; height:0;
-  border-right:44px solid transparent;
-  border-top:46px solid var(--ink);
-}
-.answer-bubble .mark{--opt:78px;}
-
-/* 빈 말풍선 (현장에서 실물·사진을 보여줄 자리) */
+.answer-bubble .no{font-family:var(--f-pixel); font-size:38px; color:var(--red);}
 .answer-bubble--blank{
-  left:600px; bottom:320px;
-  width:880px; height:460px;
-  padding:40px 46px;
-  align-items:flex-start;
-  font-size:64px;
+  top:296px;
+  width:940px; height:420px; padding:34px 40px;
+  align-items:flex-start; font-size:54px; white-space:normal;
 }
-.answer-bubble--blank .mark{--opt:64px;}
-.answer-bubble--blank .fill{
-  align-self:center;
-  margin-left:auto; margin-right:auto;
+@keyframes bubblePop{
+  0%  {opacity:0; transform:translateY(40px) scale(.7);}
+  60% {opacity:1; transform:translateY(0) scale(1.06);}
+  100%{opacity:1; transform:translateY(0) scale(1);}
 }
+.revealed .answer-bubble{animation:bubblePop .5s cubic-bezier(.2,1.4,.4,1) forwards;}
+
+/* 정답 전 안내 */
+.tease{
+  position:absolute; left:860px; top:432px;
+  font-family:var(--f-kr-pixel); font-size:56px; color:#fff;
+  text-shadow:5px 5px 0 var(--ink-2);
+  animation:teaseBlink 1s steps(1,end) infinite;
+}
+@keyframes teaseBlink{0%,60%{opacity:1;} 61%,100%{opacity:.25;}}
+.revealed .tease{display:none;}
 
 /* ── START 버튼 ────────────────────── */
 .btn-start{
-  font-family:var(--f-pixel);
-  font-size:48px;
-  color:#fff;
-  background:var(--red);
-  border:8px solid var(--ink);
-  border-radius:20px;
-  padding:26px 58px 30px;
-  box-shadow:0 10px 0 var(--red-d), 0 10px 0 8px rgba(22,33,74,.22);
+  font-family:var(--f-pixel); font-size:46px; color:#fff;
+  background:var(--red); border:8px solid var(--ink); border-radius:20px;
+  padding:24px 56px 28px;
+  box-shadow:0 10px 0 var(--red-d), 0 10px 0 8px rgba(0,0,0,.24);
   letter-spacing:.06em;
   animation:btnPulse 1.6s ease-in-out infinite;
 }
-@keyframes btnPulse{
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-10px);}
-}
+@keyframes btnPulse{0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);}}
 
 /* ══════════════════════════════════════
    등장 애니메이션
    ══════════════════════════════════════ */
 [data-anim]{opacity:0;}
-.is-active [data-anim]{
-  animation:popIn .62s cubic-bezier(.18,1.5,.42,1) forwards;
-  animation-delay:calc(var(--d,0) * 1ms);
-}
+.is-active [data-anim]{animation:popIn .6s cubic-bezier(.18,1.5,.42,1) forwards; animation-delay:calc(var(--d,0) * 1ms);}
 @keyframes popIn{
-  0%  {opacity:0; transform:translateY(84px) scale(.9);}
-  60% {opacity:1;}
+  0%{opacity:0; transform:translateY(80px) scale(.9);}
+  60%{opacity:1;}
   100%{opacity:1; transform:translateY(0) scale(1);}
 }
+.is-active [data-anim="drop"]{animation:dropIn .56s cubic-bezier(.22,1.4,.36,1) forwards; animation-delay:calc(var(--d,0) * 1ms);}
+@keyframes dropIn{0%{opacity:0; transform:translateY(-120px) rotate(-3deg);} 100%{opacity:1; transform:translateY(0) rotate(0);}}
+.is-active [data-anim="slideL"]{animation:slideL .48s cubic-bezier(.2,.9,.3,1) forwards; animation-delay:calc(var(--d,0) * 1ms);}
+@keyframes slideL{0%{opacity:0; transform:translateX(-80px);} 100%{opacity:1; transform:translateX(0);}}
 
-.is-active [data-anim="drop"]{
-  animation:dropIn .58s cubic-bezier(.22,1.4,.36,1) forwards;
-  animation-delay:calc(var(--d,0) * 1ms);
-}
-@keyframes dropIn{
-  0%  {opacity:0; transform:translateY(-120px) rotate(-3deg);}
-  100%{opacity:1; transform:translateY(0) rotate(0);}
-}
-
-.is-active [data-anim="slideL"]{
-  animation:slideL .5s cubic-bezier(.2,.9,.3,1) forwards;
-  animation-delay:calc(var(--d,0) * 1ms);
-}
-@keyframes slideL{
-  0%  {opacity:0; transform:translateX(-90px);}
-  100%{opacity:1; transform:translateX(0);}
-}
-
-/* 화면 전환 와이프 */
-#wipe{
-  position:absolute; inset:0; z-index:200;
-  pointer-events:none;
-  background:var(--ink-2);
-  transform:scaleY(0);
-  transform-origin:bottom;
-}
-#wipe.run{animation:wipe .46s steps(6,end);}
-@keyframes wipe{
-  0%  {transform:scaleY(0); transform-origin:bottom;}
-  45% {transform:scaleY(1); transform-origin:bottom;}
-  55% {transform:scaleY(1); transform-origin:top;}
-  100%{transform:scaleY(0); transform-origin:top;}
-}
+/* 화면 전환 — 마리오식 원형 아이리스 */
+#slides{position:absolute; inset:0; clip-path:circle(150% at 50% 50%);}
+#slides.iris{transition:clip-path .26s ease-in; clip-path:circle(0% at 50% 50%);}
+#slides.iris-open{transition:clip-path .32s ease-out; clip-path:circle(150% at 50% 50%);}
 
 /* ══════════════════════════════════════
-   진행 표시 · 안내
+   월드 인터미션 카드
    ══════════════════════════════════════ */
-#progress{
-  position:absolute; left:0; right:0; bottom:0; height:12px;
-  background:rgba(22,33,74,.18);
-  z-index:80;
+#world-card{
+  position:absolute; inset:0; z-index:190;
+  display:none;
+  flex-direction:column; align-items:center; justify-content:center; gap:52px;
+  background:#000;
 }
-#progress .bar{
-  height:100%; width:0;
-  background:var(--gold);
-  border-right:4px solid var(--ink);
-  transition:width .42s cubic-bezier(.3,1,.4,1);
+#world-card.show{display:flex;}
+#world-card .wtitle{
+  font-family:var(--f-pixel); font-size:76px; color:#fff; letter-spacing:.08em;
 }
-#pagenum{
-  position:absolute; left:56px; bottom:44px;
-  z-index:80;
-  font-family:var(--f-pixel);
-  font-size:24px;
-  color:var(--ink);
-  opacity:.45;
-}
+#world-card .wsub{font-family:var(--f-kr-pixel); font-size:40px; color:#F6CE3C;}
+#world-card .wlives{display:flex; align-items:center; gap:22px;}
+#world-card .wlives .ico{width:76px; image-rendering:pixelated;}
+#world-card .wlives .x{font-family:var(--f-pixel); font-size:38px; color:#fff;}
 
-#help{
-  position:absolute; right:56px; bottom:40px;
-  z-index:80;
-  font-weight:800;
-  font-size:24px;
-  color:var(--ink);
-  background:rgba(255,255,255,.62);
-  border:4px solid rgba(22,33,74,.3);
-  border-radius:14px;
-  padding:12px 20px;
-  opacity:0;
-  transition:opacity .4s;
-  pointer-events:none;
-}
-#help.show{opacity:1;}
-#help kbd{
-  font-family:var(--f-pixel); font-size:15px;
-  background:var(--ink); color:#fff;
-  padding:6px 8px; border-radius:6px; margin:0 2px;
-}
-
-/* ── 3초 카운트다운 ────────────────── */
+/* ══════════════════════════════════════
+   3초 타이머
+   ══════════════════════════════════════ */
 #timer{
   position:absolute; inset:0; z-index:150;
-  display:none;
-  align-items:center; justify-content:center;
-  background:rgba(12,19,48,.55);
+  display:none; align-items:center; justify-content:center;
+  background:rgba(6,9,26,.6);
 }
 #timer.show{display:flex;}
 #timer .num{
-  font-family:var(--f-pixel);
-  font-size:320px;
-  color:var(--gold);
+  font-family:var(--f-pixel); font-size:300px; color:var(--gold);
   text-shadow:
-    10px 0 0 var(--ink-2), -10px 0 0 var(--ink-2),
-    0 10px 0 var(--ink-2), 0 -10px 0 var(--ink-2),
+    10px 0 0 var(--ink-2), -10px 0 0 var(--ink-2), 0 10px 0 var(--ink-2), 0 -10px 0 var(--ink-2),
     10px 10px 0 var(--ink-2), -10px -10px 0 var(--ink-2);
   animation:tick .9s cubic-bezier(.2,1.4,.4,1);
 }
-#timer .num.small{font-size:160px;}
-@keyframes tick{
-  0%{transform:scale(2.2); opacity:0;}
-  30%{transform:scale(1); opacity:1;}
-  100%{transform:scale(1); opacity:1;}
-}
+#timer .num.small{font-size:150px;}
+@keyframes tick{0%{transform:scale(2.2); opacity:0;} 30%{transform:scale(1); opacity:1;} 100%{transform:scale(1); opacity:1;}}
 
 /* 색종이 */
-.confetti{
-  position:absolute; z-index:120;
-  width:20px; height:20px;
-  image-rendering:pixelated;
-  pointer-events:none;
-}
-
-/* 목차(전체 보기) */
-#overview{
-  position:absolute; inset:0; z-index:180;
-  display:none;
-  background:rgba(12,19,48,.94);
-  padding:70px 80px;
-  overflow:auto;
-}
-#overview.show{display:block;}
-#overview h2{
-  font-family:var(--f-pixel); font-size:34px; color:var(--gold);
-  margin-bottom:36px; letter-spacing:.04em;
-}
-#overview .grid{
-  display:grid; grid-template-columns:repeat(5,1fr); gap:20px;
-}
-#overview .card{
-  background:rgba(255,255,255,.08);
-  border:4px solid rgba(255,255,255,.18);
-  border-radius:16px;
-  padding:20px 22px;
-  color:#fff;
-  cursor:pointer;
-  text-align:left;
-}
-#overview .card:hover,#overview .card:focus{
-  background:var(--gold); color:var(--ink-2); border-color:#fff; outline:none;
-}
-#overview .card .n{
-  font-family:var(--f-pixel); font-size:18px; opacity:.7; display:block; margin-bottom:12px;
-}
-#overview .card .t{font-weight:800; font-size:28px; letter-spacing:-.02em;}
-#overview .card.now{border-color:var(--gold);}
-
-#mute{
-  position:absolute; right:80px; top:150px; z-index:80;
-  font-family:var(--f-pixel); font-size:18px;
-  color:var(--ink); opacity:0; transition:opacity .3s;
-}
-#mute.show{opacity:.6;}
+.confetti{position:absolute; z-index:120; width:20px; height:20px; image-rendering:pixelated; pointer-events:none;}
 
 /* ══════════════════════════════════════
-   세로 화면 안내 (휴대폰)
-   ── 무대가 가로 16:9라 세로에서는 글자가 너무 작아집니다.
-   ── #stage 바깥(body 직속)에 두어야 scale 영향을 받지 않습니다.
+   진행 표시 · 안내 · 목차
    ══════════════════════════════════════ */
+#progress{position:absolute; left:0; right:0; bottom:0; height:12px; background:rgba(0,0,0,.28); z-index:80;}
+#progress .bar{height:100%; width:0; background:var(--gold); border-right:4px solid rgba(0,0,0,.5); transition:width .42s cubic-bezier(.3,1,.4,1);}
+
+#pagenum{
+  position:absolute; left:52px; bottom:42px; z-index:80;
+  font-family:var(--f-pixel); font-size:22px; color:#fff; opacity:.5;
+  text-shadow:2px 2px 0 rgba(0,0,0,.6);
+}
+#help{
+  position:absolute; right:52px; bottom:38px; z-index:80;
+  font-weight:800; font-size:23px; color:#fff;
+  background:rgba(0,0,0,.5); border:3px solid rgba(255,255,255,.35); border-radius:14px;
+  padding:11px 18px; opacity:0; transition:opacity .4s; pointer-events:none;
+}
+#help.show{opacity:1;}
+#help kbd{font-family:var(--f-pixel); font-size:14px; background:#fff; color:#000; padding:5px 7px; border-radius:5px; margin:0 2px;}
+
+#overview{position:absolute; inset:0; z-index:180; display:none; background:rgba(4,6,20,.95); padding:64px 74px; overflow:auto;}
+#overview.show{display:block;}
+#overview h2{font-family:var(--f-pixel); font-size:30px; color:var(--gold); margin-bottom:30px; letter-spacing:.05em;}
+#overview .grid{display:grid; grid-template-columns:repeat(5,1fr); gap:18px;}
+#overview .card{
+  background:rgba(255,255,255,.08); border:4px solid rgba(255,255,255,.18); border-radius:14px;
+  padding:18px 20px; color:#fff; cursor:pointer; text-align:left;
+}
+#overview .card:hover,#overview .card:focus{background:var(--gold); color:var(--ink-2); border-color:#fff; outline:none;}
+#overview .card .n{font-family:var(--f-pixel); font-size:16px; opacity:.7; display:block; margin-bottom:10px;}
+#overview .card .t{font-weight:800; font-size:26px; letter-spacing:-.02em;}
+#overview .card.now{border-color:var(--gold);}
+
+#mute{position:absolute; right:60px; top:150px; z-index:80; font-family:var(--f-pixel); font-size:17px; color:#fff; opacity:0; transition:opacity .3s;}
+#mute.show{opacity:.65;}
+
+/* 세로 화면 안내 */
 #rotate{
-  position:fixed; inset:0; z-index:500;
-  display:none;
-  flex-direction:column;
-  align-items:center; justify-content:center;
-  gap:34px;
-  padding:40px;
-  background:linear-gradient(180deg,#1B2A4A 0%,#0C1330 100%);
-  text-align:center;
+  position:fixed; inset:0; z-index:500; display:none;
+  flex-direction:column; align-items:center; justify-content:center; gap:32px;
+  padding:40px; background:linear-gradient(180deg,#1B2A4A 0%,#0C1330 100%); text-align:center;
 }
-#rotate .icon{width:120px; image-rendering:pixelated; animation:tilt 2.4s ease-in-out infinite;}
+#rotate .icon{width:116px; image-rendering:pixelated; animation:tilt 2.4s ease-in-out infinite;}
 #rotate .icon svg{display:block; width:100%; height:auto;}
-@keyframes tilt{
-  0%,30%  {transform:rotate(0deg);}
-  55%,85% {transform:rotate(-90deg);}
-  100%    {transform:rotate(0deg);}
-}
-#rotate .head{
-  font-family:var(--f-kr-pixel);
-  font-size:34px; line-height:1.5; color:var(--gold);
-  letter-spacing:.02em;
-}
-#rotate .sub{
-  font-weight:800; font-size:19px; line-height:1.8; color:#BFD4F5;
-  letter-spacing:-.01em;
-}
+@keyframes tilt{0%,30%{transform:rotate(0deg);} 55%,85%{transform:rotate(-90deg);} 100%{transform:rotate(0deg);}}
+#rotate .head{font-family:var(--f-kr-pixel); font-size:32px; line-height:1.5; color:var(--gold);}
+#rotate .sub{font-weight:800; font-size:18px; line-height:1.8; color:#BFD4F5;}
 #rotate .sub b{color:#fff;}
-
-@media (orientation:portrait) and (max-width:1000px){
-  #rotate{display:flex;}
-}
+@media (orientation:portrait) and (max-width:1000px){#rotate{display:flex;}}
 
 @media (prefers-reduced-motion:reduce){
-  #rotate .icon{animation:none;}
-}
-
-@media (prefers-reduced-motion:reduce){
-  .cloud,#hud .heart,.prop--coin,.prop--float,.btn-start,.sparkle{animation:none !important;}
+  .cloud,.anim-coin,.anim-bob,.btn-start,.sparkle,.hero.walk .fr,#rotate .icon,.tease,.qbox .q{animation:none !important;}
   .is-active [data-anim]{animation-duration:.01ms !important;}
-  #wipe.run{animation-duration:.01ms !important;}
+  #slides.iris,#slides.iris-open{transition:none;}
 }
 </style>
 </head>
@@ -621,21 +510,21 @@ html,body{
 <div id="viewport">
  <div id="safe">
   <div id="stage">
-
-    <div class="cloud c1"></div>
-    <div class="cloud c2"></div>
-    <div class="cloud c3"></div>
-    <div class="cloud c4"></div>
+    <div id="slides"></div>
 
     <div id="hud"></div>
-    <div id="slides"></div>
+
+    <div id="world-card">
+      <div class="wtitle"></div>
+      <div class="wsub"></div>
+      <div class="wlives"><span class="ico"></span><span class="x">× 3</span></div>
+    </div>
 
     <div id="timer"><div class="num">3</div></div>
     <div id="overview"><h2>SELECT SLIDE</h2><div class="grid"></div></div>
-    <div id="wipe"></div>
 
     <div id="mute">SOUND OFF</div>
-    <div id="pagenum">01 / 25</div>
+    <div id="pagenum"></div>
     <div id="help"></div>
     <div id="progress"><div class="bar"></div></div>
   </div>
@@ -662,17 +551,18 @@ html,body{
 /* ══════════════════════════════════════════════════════════
    1. 픽셀 아트
    ══════════════════════════════════════════════════════════ */
+const S = (vb, body) =>
+  `<svg viewBox="${vb}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
+
 const ART = {
-  cloud:`<svg viewBox="0 0 32 14" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+  cloud: S('0 0 32 14', `
     <g fill="#fff">
       <rect x="10" y="2" width="8" height="2"/><rect x="8" y="4" width="12" height="2"/>
       <rect x="20" y="6" width="6" height="2"/><rect x="4" y="6" width="18" height="2"/>
       <rect x="2" y="8" width="28" height="2"/><rect x="0" y="10" width="32" height="2"/>
-    </g>
-    <g fill="#DCEFFF"><rect x="0" y="12" width="32" height="2"/></g>
-  </svg>`,
+    </g><g fill="#DCEFFF"><rect x="0" y="12" width="32" height="2"/></g>`),
 
-  heart:`<svg viewBox="0 0 14 12" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+  heart: S('0 0 14 12', `
     <g fill="#E8503C">
       <rect x="2" y="1" width="4" height="1"/><rect x="8" y="1" width="4" height="1"/>
       <rect x="1" y="2" width="12" height="3"/><rect x="2" y="5" width="10" height="2"/>
@@ -685,10 +575,9 @@ const ART = {
       <rect x="0" y="2" width="1" height="3"/><rect x="13" y="2" width="1" height="3"/>
       <rect x="1" y="1" width="1" height="1"/><rect x="12" y="1" width="1" height="1"/>
       <rect x="6" y="1" width="2" height="1"/>
-    </g>
-  </svg>`,
+    </g>`),
 
-  coin:`<svg viewBox="0 0 12 14" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+  coin: S('0 0 12 14', `
     <g fill="#16214A">
       <rect x="3" y="0" width="6" height="1"/><rect x="3" y="13" width="6" height="1"/>
       <rect x="1" y="1" width="2" height="1"/><rect x="9" y="1" width="2" height="1"/>
@@ -697,23 +586,70 @@ const ART = {
     </g>
     <g fill="#F6CE3C"><rect x="1" y="2" width="10" height="10"/><rect x="3" y="1" width="6" height="1"/><rect x="3" y="12" width="6" height="1"/></g>
     <g fill="#D9A21B"><rect x="7" y="3" width="3" height="8"/></g>
-    <g fill="#FFF0A8"><rect x="4" y="3" width="2" height="8"/></g>
-  </svg>`,
+    <g fill="#FFF0A8"><rect x="4" y="3" width="2" height="8"/></g>`),
 
-  brick:`<svg viewBox="0 0 16 16" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+  /* ? 블록 */
+  qblock: S('0 0 16 16', `
+    <g fill="#8E5A1B"><rect width="16" height="16"/></g>
+    <g fill="#E8A33D"><rect x="1" y="1" width="14" height="14"/></g>
+    <g fill="#F6CE3C"><rect x="1" y="1" width="14" height="2"/><rect x="1" y="3" width="2" height="10"/></g>
+    <g fill="#C57A1E"><rect x="13" y="3" width="2" height="12"/><rect x="3" y="13" width="12" height="2"/></g>
+    <g fill="#8E5A1B">
+      <rect x="2" y="2" width="1" height="1"/><rect x="13" y="2" width="1" height="1"/>
+      <rect x="2" y="13" width="1" height="1"/><rect x="13" y="13" width="1" height="1"/>
+    </g>
+    <g fill="#fff">
+      <rect x="6" y="4" width="4" height="1"/><rect x="5" y="5" width="2" height="1"/><rect x="9" y="5" width="2" height="1"/>
+      <rect x="9" y="6" width="2" height="1"/><rect x="8" y="7" width="2" height="1"/>
+      <rect x="7" y="8" width="2" height="2"/><rect x="7" y="11" width="2" height="2"/>
+    </g>`),
+
+  /* 친 뒤의 빈 블록 */
+  qblockUsed: S('0 0 16 16', `
+    <g fill="#5B3A12"><rect width="16" height="16"/></g>
+    <g fill="#A4702B"><rect x="1" y="1" width="14" height="14"/></g>
+    <g fill="#B9853A"><rect x="1" y="1" width="14" height="2"/><rect x="1" y="3" width="2" height="10"/></g>
+    <g fill="#7A5119"><rect x="13" y="3" width="2" height="12"/><rect x="3" y="13" width="12" height="2"/></g>
+    <g fill="#5B3A12">
+      <rect x="2" y="2" width="1" height="1"/><rect x="13" y="2" width="1" height="1"/>
+      <rect x="2" y="13" width="1" height="1"/><rect x="13" y="13" width="1" height="1"/>
+    </g>`),
+
+  brick: S('0 0 16 16', `
     <rect width="16" height="16" fill="#C0472F"/>
     <g fill="#7E2418">
       <rect y="0" width="16" height="1"/><rect y="7" width="16" height="2"/><rect y="15" width="16" height="1"/>
       <rect x="7" y="1" width="2" height="6"/><rect x="0" y="9" width="1" height="6"/><rect x="15" y="9" width="1" height="6"/>
     </g>
-    <g fill="#E07B5C"><rect x="1" y="1" width="5" height="1"/><rect x="1" y="9" width="6" height="1"/></g>
-  </svg>`,
+    <g fill="#E07B5C"><rect x="1" y="1" width="5" height="1"/><rect x="1" y="9" width="6" height="1"/></g>`),
 
-  tree:`<svg viewBox="0 0 22 30" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+  /* 초록 파이프 */
+  pipe: S('0 0 32 40', `
+    <g fill="#1B6B2A"><rect x="0" y="0" width="32" height="10"/><rect x="3" y="10" width="26" height="30"/></g>
+    <g fill="#3CB44A"><rect x="2" y="1" width="28" height="8"/><rect x="5" y="10" width="22" height="30"/></g>
+    <g fill="#7EE06B"><rect x="4" y="2" width="5" height="6"/><rect x="7" y="11" width="5" height="28"/></g>
+    <g fill="#1B6B2A"><rect x="22" y="2" width="6" height="6"/><rect x="21" y="11" width="6" height="28"/></g>`),
+
+  /* 원경 언덕 */
+  hill: S('0 0 40 20', `
+    <g fill="#2F9B36">
+      <rect x="18" y="2" width="4" height="2"/><rect x="14" y="4" width="12" height="2"/>
+      <rect x="10" y="6" width="20" height="3"/><rect x="6" y="9" width="28" height="3"/>
+      <rect x="2" y="12" width="36" height="4"/><rect x="0" y="16" width="40" height="4"/>
+    </g>
+    <g fill="#5CCB4E">
+      <rect x="18" y="3" width="2" height="2"/><rect x="14" y="5" width="4" height="2"/>
+      <rect x="10" y="7" width="6" height="3"/><rect x="6" y="10" width="8" height="3"/>
+    </g>
+    <g fill="#1E7A28">
+      <rect x="24" y="12" width="3" height="2"/><rect x="12" y="16" width="3" height="2"/>
+      <rect x="30" y="16" width="3" height="2"/>
+    </g>`),
+
+  tree: S('0 0 22 30', `
     <g fill="#2F9B36">
       <rect x="6" y="1" width="9" height="2"/><rect x="4" y="3" width="13" height="2"/>
-      <rect x="2" y="5" width="17" height="7"/><rect x="4" y="12" width="13" height="4"/>
-      <rect x="6" y="16" width="9" height="2"/>
+      <rect x="2" y="5" width="17" height="7"/><rect x="4" y="12" width="13" height="4"/><rect x="6" y="16" width="9" height="2"/>
     </g>
     <g fill="#5CCB4E">
       <rect x="6" y="2" width="6" height="2"/><rect x="4" y="4" width="10" height="2"/>
@@ -722,128 +658,194 @@ const ART = {
     <g fill="#8FF089"><rect x="5" y="5" width="2" height="6"/><rect x="9" y="7" width="2" height="5"/></g>
     <g fill="#7C3A12"><rect x="9" y="18" width="4" height="12"/></g>
     <g fill="#A5502A"><rect x="9" y="18" width="2" height="12"/></g>
-    <g fill="#7C3A12"><rect x="5" y="21" width="4" height="2"/><rect x="13" y="24" width="4" height="2"/></g>
-  </svg>`,
+    <g fill="#7C3A12"><rect x="5" y="21" width="4" height="2"/><rect x="13" y="24" width="4" height="2"/></g>`),
 
-  flower:`<svg viewBox="0 0 14 24" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
-    <g fill="#E8508F">
-      <rect x="4" y="1" width="6" height="2"/><rect x="2" y="3" width="10" height="4"/><rect x="4" y="7" width="6" height="2"/>
-    </g>
-    <g fill="#FF8FC0"><rect x="4" y="2" width="3" height="3"/></g>
-    <g fill="#2F9B36">
-      <rect x="6" y="9" width="2" height="15"/>
-      <rect x="1" y="12" width="5" height="2"/><rect x="8" y="16" width="5" height="2"/>
-    </g>
-    <g fill="#5CCB4E"><rect x="2" y="12" width="3" height="1"/><rect x="9" y="16" width="3" height="1"/></g>
-  </svg>`,
-
-  bush:`<svg viewBox="0 0 28 10" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+  bush: S('0 0 28 10', `
     <g fill="#2F9B36">
       <rect x="5" y="2" width="5" height="2"/><rect x="17" y="1" width="5" height="3"/>
       <rect x="2" y="4" width="24" height="3"/><rect x="0" y="7" width="28" height="3"/>
     </g>
-    <g fill="#5CCB4E">
-      <rect x="5" y="3" width="3" height="2"/><rect x="17" y="2" width="3" height="2"/>
-      <rect x="2" y="5" width="10" height="1"/>
-    </g>
-  </svg>`,
+    <g fill="#5CCB4E"><rect x="5" y="3" width="3" height="2"/><rect x="17" y="2" width="3" height="2"/><rect x="2" y="5" width="10" height="1"/></g>`),
 
-  chest:`<svg viewBox="0 0 24 18" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+  flower: S('0 0 14 24', `
+    <g fill="#E8508F"><rect x="4" y="1" width="6" height="2"/><rect x="2" y="3" width="10" height="4"/><rect x="4" y="7" width="6" height="2"/></g>
+    <g fill="#FF8FC0"><rect x="4" y="2" width="3" height="3"/></g>
+    <g fill="#2F9B36"><rect x="6" y="9" width="2" height="15"/><rect x="1" y="12" width="5" height="2"/><rect x="8" y="16" width="5" height="2"/></g>
+    <g fill="#5CCB4E"><rect x="2" y="12" width="3" height="1"/><rect x="9" y="16" width="3" height="1"/></g>`),
+
+  /* 지하 — 종유석 */
+  stalactite: S('0 0 12 22', `
+    <g fill="#101E5E"><rect x="0" y="0" width="12" height="6"/><rect x="2" y="6" width="8" height="6"/><rect x="4" y="12" width="4" height="6"/><rect x="5" y="18" width="2" height="4"/></g>
+    <g fill="#2E5CC8"><rect x="1" y="1" width="9" height="4"/><rect x="3" y="6" width="5" height="5"/><rect x="5" y="12" width="2" height="5"/></g>
+    <g fill="#5C86FF"><rect x="2" y="2" width="3" height="3"/></g>`),
+
+  /* 지하 — 보석 */
+  gem: S('0 0 12 14', `
+    <g fill="#0B2B6B"><rect x="3" y="0" width="6" height="1"/><rect x="1" y="1" width="10" height="2"/><rect x="0" y="3" width="12" height="6"/><rect x="2" y="9" width="8" height="3"/><rect x="4" y="12" width="4" height="2"/></g>
+    <g fill="#3FD2E8"><rect x="3" y="1" width="6" height="2"/><rect x="1" y="3" width="10" height="6"/><rect x="3" y="9" width="6" height="3"/></g>
+    <g fill="#BDF6FF"><rect x="3" y="2" width="2" height="6"/><rect x="6" y="4" width="1" height="4"/></g>`),
+
+  mushroom: S('0 0 16 14', `
+    <g fill="#16214A"><rect x="3" y="0" width="10" height="1"/><rect x="1" y="1" width="14" height="1"/><rect x="0" y="2" width="16" height="6"/><rect x="2" y="8" width="12" height="6"/></g>
+    <g fill="#E8503C"><rect x="4" y="1" width="8" height="1"/><rect x="1" y="2" width="14" height="5"/></g>
+    <g fill="#fff">
+      <rect x="2" y="3" width="3" height="3"/><rect x="11" y="3" width="3" height="3"/><rect x="6" y="2" width="4" height="2"/>
+      <rect x="3" y="8" width="10" height="5"/>
+    </g>
+    <g fill="#FFD9C8"><rect x="5" y="9" width="2" height="2"/><rect x="9" y="9" width="2" height="2"/></g>`),
+
+  star: S('0 0 16 16', `
+    <g fill="#B8860B"><rect x="7" y="0" width="2" height="2"/><rect x="6" y="2" width="4" height="2"/><rect x="0" y="4" width="16" height="3"/><rect x="2" y="7" width="12" height="4"/><rect x="3" y="11" width="4" height="4"/><rect x="9" y="11" width="4" height="4"/></g>
+    <g fill="#F6CE3C"><rect x="7" y="1" width="2" height="2"/><rect x="6" y="3" width="4" height="2"/><rect x="1" y="5" width="14" height="2"/><rect x="3" y="7" width="10" height="3"/><rect x="4" y="10" width="3" height="4"/><rect x="9" y="10" width="3" height="4"/></g>
+    <g fill="#16214A"><rect x="5" y="6" width="2" height="3"/><rect x="9" y="6" width="2" height="3"/></g>`),
+
+  chest: S('0 0 24 18', `
     <g fill="#16214A"><rect x="1" y="2" width="22" height="16"/></g>
     <g fill="#F6CE3C"><rect x="2" y="3" width="20" height="14"/></g>
     <g fill="#D9A21B"><rect x="2" y="7" width="20" height="2"/><rect x="16" y="9" width="6" height="8"/></g>
     <g fill="#8E4B1C"><rect x="9" y="3" width="6" height="14"/></g>
     <g fill="#B4571F"><rect x="9" y="3" width="3" height="14"/></g>
     <g fill="#16214A"><rect x="10" y="8" width="4" height="4"/></g>
-    <g fill="#FFF0A8"><rect x="3" y="4" width="5" height="1"/></g>
-  </svg>`,
+    <g fill="#FFF0A8"><rect x="3" y="4" width="5" height="1"/></g>`),
 
-  moneybag:`<svg viewBox="0 0 18 22" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
-    <g fill="#E8C43A">
-      <rect x="6" y="0" width="6" height="2"/><rect x="5" y="2" width="8" height="2"/>
-      <rect x="7" y="4" width="4" height="2"/>
-    </g>
-    <g fill="#F6DC5E">
-      <rect x="5" y="6" width="8" height="2"/><rect x="3" y="8" width="12" height="4"/>
-      <rect x="2" y="12" width="14" height="7"/><rect x="3" y="19" width="12" height="2"/>
-    </g>
-    <g fill="#E8C43A">
-      <rect x="11" y="8" width="4" height="13"/><rect x="2" y="18" width="13" height="1"/>
-    </g>
-    <g fill="#FFF3A8"><rect x="4" y="10" width="3" height="6"/></g>
-    <g fill="#C9A21B"><rect x="2" y="21" width="14" height="1"/><rect x="6" y="0" width="2" height="1"/></g>
-  </svg>`,
+  /* 케이크 — 엔딩 */
+  cake: S('0 0 22 20', `
+    <g fill="#F6CE3C"><rect x="10" y="0" width="2" height="4"/></g>
+    <g fill="#E8503C"><rect x="9" y="4" width="4" height="3"/></g>
+    <g fill="#FFF"><rect x="2" y="7" width="18" height="4"/></g>
+    <g fill="#FFD3E4"><rect x="1" y="11" width="20" height="4"/></g>
+    <g fill="#F6A8CC"><rect x="1" y="11" width="20" height="1"/><rect x="4" y="12" width="2" height="3"/><rect x="10" y="12" width="2" height="3"/><rect x="16" y="12" width="2" height="3"/></g>
+    <g fill="#B4571F"><rect x="0" y="15" width="22" height="5"/></g>
+    <g fill="#8E4B1C"><rect x="0" y="18" width="22" height="2"/></g>`),
 
-  girl:`<svg viewBox="0 0 16 26" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
-    <g fill="#F6CE3C">
-      <rect x="3" y="0" width="10" height="4"/><rect x="2" y="2" width="2" height="8"/><rect x="12" y="2" width="2" height="8"/>
+  /* 성 */
+  castle: S('0 0 40 36', `
+    <g fill="#2A2545"><rect x="0" y="6" width="40" height="30"/></g>
+    <g fill="#8A85AE"><rect x="1" y="7" width="38" height="28"/></g>
+    <g fill="#6E6A8E">
+      <rect x="1" y="7" width="38" height="2"/><rect x="1" y="15" width="38" height="2"/><rect x="1" y="23" width="38" height="2"/>
+      <rect x="9" y="9" width="2" height="6"/><rect x="29" y="9" width="2" height="6"/>
+      <rect x="19" y="17" width="2" height="6"/><rect x="5" y="25" width="2" height="10"/><rect x="33" y="25" width="2" height="10"/>
     </g>
-    <g fill="#FFE0B8"><rect x="4" y="3" width="8" height="7"/></g>
-    <g fill="#16214A"><rect x="5" y="5" width="2" height="2"/><rect x="9" y="5" width="2" height="2"/></g>
-    <g fill="#E8508F"><rect x="5" y="8" width="2" height="1"/><rect x="9" y="8" width="2" height="1"/></g>
-    <g fill="#4FD6C8"><rect x="3" y="10" width="10" height="8"/></g>
-    <g fill="#2FA79C"><rect x="3" y="10" width="10" height="1"/><rect x="10" y="11" width="3" height="7"/></g>
-    <g fill="#FFE0B8"><rect x="1" y="11" width="2" height="6"/><rect x="13" y="11" width="2" height="6"/></g>
-    <g fill="#16214A"><rect x="3" y="18" width="4" height="7"/><rect x="9" y="18" width="4" height="7"/></g>
-    <g fill="#E8503C"><rect x="2" y="25" width="5" height="1"/><rect x="9" y="25" width="5" height="1"/></g>
-  </svg>`,
+    <g fill="#2A2545">
+      <rect x="0" y="0" width="6" height="7"/><rect x="34" y="0" width="6" height="7"/><rect x="14" y="2" width="12" height="5"/>
+      <rect x="8" y="4" width="3" height="3"/><rect x="29" y="4" width="3" height="3"/>
+    </g>
+    <g fill="#8A85AE">
+      <rect x="1" y="1" width="4" height="6"/><rect x="35" y="1" width="4" height="6"/><rect x="15" y="3" width="10" height="4"/>
+    </g>
+    <g fill="#16214A"><rect x="16" y="24" width="8" height="12"/></g>
+    <g fill="#3C2B66"><rect x="17" y="26" width="6" height="10"/></g>
+    <g fill="#F6CE3C"><rect x="18" y="29" width="2" height="2"/></g>
+    <g fill="#4FA8F0"><rect x="10" y="18" width="3" height="4"/><rect x="27" y="18" width="3" height="4"/></g>`),
 
-  book:`<svg viewBox="0 0 18 16" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
-    <g fill="#16214A"><rect x="1" y="0" width="16" height="14"/></g>
-    <g fill="#3C63D6"><rect x="2" y="1" width="14" height="12"/></g>
-    <g fill="#8FB4FF"><rect x="4" y="4" width="2" height="2"/><rect x="8" y="4" width="2" height="2"/><rect x="12" y="4" width="2" height="2"/></g>
-    <g fill="#E8EEFF"><rect x="0" y="14" width="18" height="2"/></g>
-  </svg>`
+  flagpole: S('0 0 14 46', `
+    <g fill="#3CB44A"><rect x="6" y="2" width="2" height="44"/></g>
+    <g fill="#7EE06B"><rect x="6" y="2" width="1" height="44"/></g>
+    <g fill="#F6CE3C"><rect x="4" y="0" width="6" height="3"/></g>
+    <g fill="#D9A21B"><rect x="4" y="2" width="6" height="1"/></g>`),
+
+  flag: S('0 0 14 12', `
+    <g fill="#E8503C"><rect x="0" y="0" width="13" height="10"/></g>
+    <g fill="#FF8A72"><rect x="0" y="0" width="13" height="2"/></g>
+    <g fill="#B32F20"><rect x="0" y="8" width="13" height="2"/></g>
+    <g fill="#fff"><rect x="4" y="3" width="5" height="4"/></g>`),
+
+  /* ── 주인공: 아기 채원 ── */
+  baby1: S('0 0 16 24', `
+    <g fill="#C98A2E"><rect x="7" y="0" width="2" height="2"/></g>
+    <g fill="#F6CE3C"><rect x="4" y="1" width="8" height="3"/><rect x="3" y="3" width="10" height="2"/></g>
+    <g fill="#FFE0B8"><rect x="4" y="4" width="8" height="6"/><rect x="3" y="5" width="10" height="4"/></g>
+    <g fill="#16214A"><rect x="5" y="6" width="2" height="2"/><rect x="9" y="6" width="2" height="2"/></g>
+    <g fill="#FF9CC0"><rect x="3" y="8" width="2" height="2"/><rect x="11" y="8" width="2" height="2"/></g>
+    <g fill="#B34A2E"><rect x="7" y="8" width="2" height="1"/></g>
+    <g fill="#4FD6C8"><rect x="4" y="10" width="8" height="6"/></g>
+    <g fill="#2FA79C"><rect x="4" y="10" width="8" height="1"/><rect x="9" y="11" width="3" height="5"/></g>
+    <g fill="#FFE0B8"><rect x="2" y="11" width="2" height="4"/><rect x="12" y="11" width="2" height="4"/></g>
+    <g fill="#fff"><rect x="4" y="16" width="8" height="4"/></g>
+    <g fill="#E6EEF7"><rect x="4" y="19" width="8" height="1"/></g>
+    <g fill="#FFE0B8"><rect x="4" y="20" width="3" height="3"/><rect x="9" y="20" width="3" height="3"/></g>
+    <g fill="#E8503C"><rect x="3" y="23" width="4" height="1"/><rect x="9" y="23" width="4" height="1"/></g>`),
+
+  baby2: S('0 0 16 24', `
+    <g fill="#C98A2E"><rect x="7" y="0" width="2" height="2"/></g>
+    <g fill="#F6CE3C"><rect x="4" y="1" width="8" height="3"/><rect x="3" y="3" width="10" height="2"/></g>
+    <g fill="#FFE0B8"><rect x="4" y="4" width="8" height="6"/><rect x="3" y="5" width="10" height="4"/></g>
+    <g fill="#16214A"><rect x="5" y="6" width="2" height="2"/><rect x="9" y="6" width="2" height="2"/></g>
+    <g fill="#FF9CC0"><rect x="3" y="8" width="2" height="2"/><rect x="11" y="8" width="2" height="2"/></g>
+    <g fill="#B34A2E"><rect x="7" y="8" width="2" height="1"/></g>
+    <g fill="#4FD6C8"><rect x="4" y="10" width="8" height="6"/></g>
+    <g fill="#2FA79C"><rect x="4" y="10" width="8" height="1"/><rect x="9" y="11" width="3" height="5"/></g>
+    <g fill="#FFE0B8"><rect x="1" y="12" width="3" height="3"/><rect x="12" y="10" width="3" height="3"/></g>
+    <g fill="#fff"><rect x="4" y="16" width="8" height="4"/></g>
+    <g fill="#E6EEF7"><rect x="4" y="19" width="8" height="1"/></g>
+    <g fill="#FFE0B8"><rect x="2" y="20" width="4" height="3"/><rect x="10" y="20" width="4" height="2"/></g>
+    <g fill="#E8503C"><rect x="1" y="23" width="5" height="1"/><rect x="10" y="22" width="5" height="1"/></g>`),
+
+  baby3: S('0 0 16 24', `
+    <g fill="#C98A2E"><rect x="7" y="0" width="2" height="2"/></g>
+    <g fill="#F6CE3C"><rect x="4" y="1" width="8" height="3"/><rect x="3" y="3" width="10" height="2"/></g>
+    <g fill="#FFE0B8"><rect x="4" y="4" width="8" height="6"/><rect x="3" y="5" width="10" height="4"/></g>
+    <g fill="#16214A"><rect x="5" y="6" width="2" height="1"/><rect x="9" y="6" width="2" height="1"/></g>
+    <g fill="#FF9CC0"><rect x="3" y="8" width="2" height="2"/><rect x="11" y="8" width="2" height="2"/></g>
+    <g fill="#B34A2E"><rect x="6" y="8" width="4" height="2"/></g>
+    <g fill="#4FD6C8"><rect x="4" y="10" width="8" height="6"/></g>
+    <g fill="#2FA79C"><rect x="4" y="10" width="8" height="1"/><rect x="9" y="11" width="3" height="5"/></g>
+    <g fill="#FFE0B8"><rect x="1" y="8" width="3" height="3"/><rect x="12" y="8" width="3" height="3"/></g>
+    <g fill="#fff"><rect x="4" y="16" width="8" height="4"/></g>
+    <g fill="#E6EEF7"><rect x="4" y="19" width="8" height="1"/></g>
+    <g fill="#FFE0B8"><rect x="3" y="20" width="4" height="2"/><rect x="9" y="20" width="4" height="2"/></g>
+    <g fill="#E8503C"><rect x="2" y="22" width="5" height="1"/><rect x="9" y="22" width="5" height="1"/></g>`)
 };
 
 /* ══════════════════════════════════════════════════════════
-   2. 배경 프리셋
+   2. 무대 배경 — 월드별 세트
    ══════════════════════════════════════════════════════════ */
-// 홀수 퀴즈 — 덤불과 장미
-const SCENE_BUSH = [
-  {art:'bush',   style:'left:-20px;  bottom:140px; width:280px;'},
-  {art:'bush',   style:'right:20px;  bottom:140px; width:260px;'},
-  {art:'flower', style:'right:180px; bottom:150px; width:150px;'}
-];
-// 짝수 퀴즈 — 나무 두 그루
-const SCENE_TREE = [
-  {art:'tree', style:'left:10px;   bottom:140px; width:270px;'},
-  {art:'tree', style:'right:10px;  bottom:140px; width:250px;'}
-];
-const PRIZE_CHEST = [
-  {art:'chest', style:'left:380px; bottom:145px; width:290px;'},
-  {sparkle:true, style:'left:352px; bottom:355px;'},
-  {sparkle:true, style:'left:640px; bottom:330px;'}
-];
-const PRIZE_BAG = [
-  {art:'moneybag', style:'left:410px; bottom:145px; width:180px;'},
-  {sparkle:true,   style:'left:378px; bottom:330px;'}
-];
+const px = (art, style, cls='') => ({art, style, cls});
 
-const scene = (...parts) => [].concat(...parts);
+/* WORLD 1 — 지상 */
+const SET_OVER = [
+  px('hill',  'left:-40px;  bottom:150px; width:460px; opacity:.9;'),
+  px('hill',  'right:120px; bottom:150px; width:340px; opacity:.75;'),
+  px('bush',  'left:300px;  bottom:145px; width:250px;'),
+  px('tree',  'right:40px;  bottom:145px; width:230px;'),
+  px('pipe',  'right:330px; bottom:148px; width:170px;'),
+  px('flower','left:600px;  bottom:150px; width:110px;')
+];
+/* WORLD 2 — 지하 */
+const SET_CAVE = [
+  px('stalactite','left:210px;  top:92px;   width:110px;'),
+  px('stalactite','left:1420px; top:92px;   width:92px;'),
+  px('stalactite','left:820px;  top:92px;   width:76px; opacity:.8;'),
+  px('gem',       'left:120px;  bottom:158px; width:88px;',  'anim-bob'),
+  px('gem',       'right:180px; bottom:158px; width:74px;',  'anim-bob'),
+  px('mushroom',  'right:420px; bottom:152px; width:110px;'),
+  px('brick',     'left:-20px;  bottom:150px; width:130px;'),
+  px('brick',     'left:110px;  bottom:150px; width:130px;')
+];
 
 /* ══════════════════════════════════════════════════════════
-   3. 슬라이드 — 총 25장
+   3. 슬라이드 — 퀴즈 내용은 원본 그대로
    ══════════════════════════════════════════════════════════ */
 const SLIDES = [
   /* 01 */ {
-    type:'title', nav:'표지',
+    type:'title', nav:'표지', theme:'dawn',
     eyebrow:'퀴즈 게임을 시작합니다',
     en:['QUIZ','GAME'],
     ground:'grass',
     props:[
-      {art:'brick', style:'left:-10px;  bottom:150px; width:150px;'},
-      {art:'brick', style:'left:150px;  bottom:150px; width:150px;'},
-      {art:'brick', style:'right:-10px; bottom:150px; width:150px;'},
-      {art:'brick', style:'right:150px; bottom:150px; width:150px;'},
-      {art:'coin',  style:'left:190px;  bottom:340px; width:96px;', cls:'prop--coin'},
-      {art:'coin',  style:'right:190px; bottom:340px; width:96px;', cls:'prop--coin'},
-      {art:'bush',  style:'left:60px;   bottom:140px; width:280px;'},
-      {art:'bush',  style:'right:40px;  bottom:140px; width:300px;'}
-    ]
+      px('hill','left:-60px; bottom:150px; width:480px; opacity:.85;'),
+      px('hill','right:60px; bottom:150px; width:380px; opacity:.7;'),
+      px('bush','left:180px; bottom:145px; width:280px;'),
+      px('bush','right:120px;bottom:145px; width:250px;'),
+      px('qblock','left:250px;  bottom:470px; width:120px;'),
+      px('qblock','right:250px; bottom:470px; width:120px;'),
+      px('pipe','right:390px; bottom:148px; width:180px;')
+    ],
+    hero:{style:'left:120px; bottom:150px; width:150px;', walk:true}
   },
   /* 02 */ {
-    type:'message', nav:'인사말',
+    type:'message', nav:'인사말', theme:'dawn',
     krTitle:'인사말',
     lines:[
       '채원이의 돌잔치에 오신 모든 가족분들을 환영합니다.',
@@ -853,293 +855,355 @@ const SLIDES = [
     ],
     ground:'grass',
     props:[
-      {art:'tree', style:'left:20px;  bottom:140px; width:230px;'},
-      {art:'tree', style:'right:20px; bottom:140px; width:250px;'}
+      px('tree','left:20px;  bottom:145px; width:240px;'),
+      px('tree','right:20px; bottom:145px; width:260px;'),
+      px('bush','left:250px; bottom:145px; width:220px;')
     ]
   },
   /* 03 */ {
-    type:'rules', nav:'게임 규칙',
+    type:'rules', nav:'게임 규칙', theme:'dawn',
     krTitle:'게임 규칙',
     rules:[
       '정답을 알면 <em>“채원”</em>을 외칩니다.',
       '질문에 대해 <em>3초</em> 안에 답변해주세요.',
       '정답 시 문제 번호에 맞는 선물을 수령합니다!'
     ],
-    ground:'brick',
+    ground:'grass',
     props:[
-      {art:'coin',  style:'left:-30px;  bottom:430px; width:110px;', cls:'prop--coin'},
-      {art:'brick', style:'left:-20px;  bottom:150px; width:150px;'},
-      {art:'brick', style:'right:-20px; bottom:150px; width:150px;'},
-      {art:'book',  style:'right:110px; bottom:160px; width:150px;', cls:'prop--float'}
+      px('qblock','left:60px;   bottom:520px; width:110px;'),
+      px('brick', 'left:170px;  bottom:520px; width:110px;'),
+      px('qblock','right:60px;  bottom:520px; width:110px;'),
+      px('bush',  'left:-20px;  bottom:145px; width:260px;'),
+      px('bush',  'right:-10px; bottom:145px; width:240px;')
     ]
   },
   /* 04 */ {
-    type:'start', nav:'게임 시작',
+    type:'start', nav:'게임 시작', theme:'dawn',
     krTitle:'게임 시작',
     lines:['이제 게임을 시작합니다.','문제를 잘 듣고 정답을 맞혀주세요.'],
-    ground:'stone',
+    ground:'grass',
     props:[
-      {art:'girl',  style:'left:60px;   bottom:150px; width:220px;', cls:'prop--float'},
-      {art:'coin',  style:'right:180px; bottom:470px; width:110px;', cls:'prop--coin'},
-      {art:'brick', style:'right:-20px; bottom:290px; width:150px;'},
-      {art:'brick', style:'right:130px; bottom:290px; width:150px;'}
-    ]
+      px('hill','right:-40px; bottom:150px; width:420px; opacity:.8;'),
+      px('bush','right:280px; bottom:145px; width:230px;'),
+      px('pipe','right:60px;  bottom:148px; width:180px;'),
+      px('coin','left:640px;  bottom:520px; width:80px;', 'anim-coin'),
+      px('coin','left:790px;  bottom:520px; width:80px;', 'anim-coin'),
+      px('coin','left:940px;  bottom:520px; width:80px;', 'anim-coin')
+    ],
+    hero:{style:'left:150px; bottom:150px; width:160px;', walk:true}
   },
 
+  /* ─────────── WORLD 1 : 지상 ─────────── */
   /* 05 */ {
-    type:'quiz', no:1, nav:'Q1 몸무게',
+    type:'quiz', no:1, nav:'Q1 몸무게', theme:'overworld',
     question:'채원이가 태어났을 때 몸무게는?',
     options:['① 2.91kg','② 2.92kg','③ 2.93kg','④ 2.94kg','⑤ 2.98kg'],
-    ground:'stone', props:SCENE_BUSH
+    ground:'grass', props:SET_OVER,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 06 */ {
-    type:'answer', no:1, nav:'Q1 정답',
-    answer:'② 2.92kg',
-    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
-  },
+  /* 06 */ {type:'answer', no:1, nav:'Q1 정답', answer:'② 2.92kg', theme:'overworld', ground:'grass', props:SET_OVER},
 
   /* 07 */ {
-    type:'quiz', no:2, nav:'Q2 조리원',
+    type:'quiz', no:2, nav:'Q2 조리원', theme:'overworld',
     question:'조리원 퇴소날, 채원이는 어떤 행동을 안해서<br>엄마가 산후조리원에 전화를 했어요.<br>왜 전화했을까요?',
-    qSize:64,
+    qSize:58,
     options:['① 많이 울어서','② 잠을 안자서','③ 너무 많이 자서','④ 응가를 안해서','⑤ 트름 안하기'],
-    optSize:52,
-    ground:'stone', props:SCENE_TREE
+    optSize:46,
+    ground:'grass', props:SET_OVER,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 08 */ {
-    type:'answer', no:2, nav:'Q2 정답',
-    answer:'④ 응가를 안해서',
-    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
-  },
+  /* 08 */ {type:'answer', no:2, nav:'Q2 정답', answer:'④ 응가를 안해서', theme:'overworld', ground:'grass', props:SET_OVER},
 
   /* 09 */ {
-    type:'quiz', no:3, nav:'Q3 분유량',
+    type:'quiz', no:3, nav:'Q3 분유량', theme:'overworld',
     question:'채원이는 하루에 분유를 몇 ml 먹을까요?',
     options:['① 400ml','② 410ml','③ 420ml','④ 430ml','⑤ 440ml'],
-    ground:'stone', props:SCENE_BUSH
+    ground:'grass', props:SET_OVER,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 10 */ {
-    type:'answer', no:3, nav:'Q3 정답',
-    answer:'③ 420ml',
-    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
-  },
+  /* 10 */ {type:'answer', no:3, nav:'Q3 정답', answer:'③ 420ml', theme:'overworld', ground:'grass', props:SET_OVER},
 
   /* 11 */ {
-    type:'quiz', no:4, nav:'Q4 검색어',
+    type:'quiz', no:4, nav:'Q4 검색어', theme:'overworld',
     question:'엄마 아빠가 가장 많이 검색한 것은?',
     options:['① 열이 나요.','② 밥을 안 먹어요.','③ 왜 울어요?','④ 뭐가 예뻐요?','⑤ 왜 안자요?'],
-    optSize:54,
-    ground:'stone', props:SCENE_TREE
+    optSize:48,
+    ground:'grass', props:SET_OVER,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 12 */ {
-    type:'answer', no:4, nav:'Q4 정답',
-    answer:'⑤ 왜 안자요?',
-    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
-  },
+  /* 12 */ {type:'answer', no:4, nav:'Q4 정답', answer:'⑤ 왜 안자요?', theme:'overworld', ground:'grass', props:SET_OVER},
 
   /* 13 */ {
-    type:'quiz', no:5, nav:'Q5 첫 엄마',
+    type:'quiz', no:5, nav:'Q5 첫 엄마', theme:'overworld',
     question:'채원이가 엄마라고 처음 말한 날짜는?',
     options:['① 25.11.20','② 26.01.04','③ 26.01.09','④ 26.02.01','⑤ 26.03.01'],
-    optSize:56,
-    ground:'stone', props:SCENE_BUSH
+    optSize:50,
+    ground:'grass', props:SET_OVER,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 14 */ {
-    type:'answer', no:5, nav:'Q5 정답',
-    answer:'③ 26.01.09',
-    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
-  },
+  /* 14 */ {type:'answer', no:5, nav:'Q5 정답', answer:'③ 26.01.09', theme:'overworld', ground:'grass', props:SET_OVER},
 
+  /* ─────────── WORLD 2 : 지하 ─────────── */
   /* 15 */ {
-    type:'quiz', no:6, nav:'Q6 엄마 말버릇',
+    type:'quiz', no:6, nav:'Q6 엄마 말버릇', theme:'underground',
     question:'엄마가 채원아~<br>다음으로 가장 많이 하는 말은?',
     options:['① 안돼~','② 우와~','③ 아이고~','④ 사랑해~','⑤ 으악~'],
-    ground:'stone', props:SCENE_TREE
+    ground:'cave', ceiling:true, props:SET_CAVE,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 16 */ {
-    type:'answer', no:6, nav:'Q6 정답',
-    answer:'② 우와~',
-    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
-  },
+  /* 16 */ {type:'answer', no:6, nav:'Q6 정답', answer:'② 우와~', theme:'underground', ground:'cave', ceiling:true, props:SET_CAVE},
 
   /* 17 */ {
-    type:'quiz', no:7, nav:'Q7 최애 간식',
+    type:'quiz', no:7, nav:'Q7 최애 간식', theme:'underground',
     question:'채원이의 최애 간식은?',
     options:['① 떡뻥','② 바나나','③ 요거트','④ 치즈','⑤ 퓨레'],
-    ground:'stone', props:SCENE_BUSH
+    ground:'cave', ceiling:true, props:SET_CAVE,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 18 */ {
-    type:'answer', no:7, nav:'Q7 정답',
-    answer:'① 떡뻥',
-    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
-  },
+  /* 18 */ {type:'answer', no:7, nav:'Q7 정답', answer:'① 떡뻥', theme:'underground', ground:'cave', ceiling:true, props:SET_CAVE},
 
   /* 19 */ {
-    type:'quiz', no:8, nav:'Q8 많이 들은 말',
+    type:'quiz', no:8, nav:'Q8 많이 들은 말', theme:'underground',
     question:'채원이가 가장 많이 들은 말은?',
     options:['① 아이고 예뻐~','② 엄마 닮았다~','③ 아빠 닮았다~','④ 엄마 그만 찾아~','⑤ 순하다~'],
-    optSize:52,
-    ground:'stone', props:SCENE_TREE
+    optSize:46,
+    ground:'cave', ceiling:true, props:SET_CAVE,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 20 */ {
-    type:'answer', no:8, nav:'Q8 정답',
-    answer:'⑤ 순하다~',
-    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
-  },
+  /* 20 */ {type:'answer', no:8, nav:'Q8 정답', answer:'⑤ 순하다~', theme:'underground', ground:'cave', ceiling:true, props:SET_CAVE},
 
   /* 21 */ {
-    type:'quiz', no:9, nav:'Q9 발 사이즈',
+    type:'quiz', no:9, nav:'Q9 발 사이즈', theme:'underground',
     question:'채원이의 발은 몇 번일까요?',
     options:null,
-    ground:'stone', props:SCENE_BUSH
+    ground:'cave', ceiling:true, props:SET_CAVE,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
   /* 22 */ {
-    type:'choices', no:9, nav:'Q9 보기',
-    // 실물이나 사진을 화면 앞에 두고 번호로 고르는 문제입니다.
-    // 글자로 보여주려면 아래 배열을 채우세요. 예: ['110mm','115mm','120mm','125mm','130mm']
+    type:'choices', no:9, nav:'Q9 보기', theme:'underground',
+    // 실물이나 사진을 앞에 두고 번호로 고르는 문제입니다.
+    // 글자로 보여주려면 아래를 채우세요. 예: ['110mm','115mm','120mm','125mm','130mm']
     labels:['','','','',''],
-    ground:'stone', props:SCENE_BUSH
+    ground:'cave', ceiling:true, props:SET_CAVE
   },
-  /* 23 */ {
-    type:'answer', no:9, nav:'Q9 정답',
-    answer:'④', blank:true,
-    ground:'stone', props:scene(SCENE_BUSH, PRIZE_CHEST)
-  },
+  /* 23 */ {type:'answer', no:9, nav:'Q9 정답', answer:'④', blank:true, theme:'underground', ground:'cave', ceiling:true, props:SET_CAVE},
 
   /* 24 */ {
-    type:'quiz', no:10, nav:'Q10 사진 장수',
+    type:'quiz', no:10, nav:'Q10 사진 장수', theme:'underground',
     question:'엄마 휴대폰 사진첩에는<br>채원이 사진이 몇 장 있을까요?',
     note:'*앨범에서 채원이 얼굴 인식, 26.09.13 기준',
     options:['① 1,316장','② 1,500장','③ 1,600장','④ 1,700장','⑤ 1,800장'],
-    optSize:56,
-    ground:'stone', props:SCENE_TREE
+    optSize:50,
+    ground:'cave', ceiling:true, props:SET_CAVE,
+    hero:{style:'left:24px; bottom:150px; width:122px;', walk:true}
   },
-  /* 25 */ {
-    type:'answer', no:10, nav:'Q10 정답',
-    answer:'① 1,316장',
-    ground:'stone', props:scene(SCENE_TREE, PRIZE_BAG)
+  /* 25 */ {type:'answer', no:10, nav:'Q10 정답', answer:'① 1,316장', theme:'underground', ground:'cave', ceiling:true, props:SET_CAVE},
+
+  /* 26 — 골인 */
+  {
+    type:'clear', nav:'클리어', theme:'castle',
+    ground:'stone',
+    props:[
+      px('castle',  'right:120px; bottom:148px; width:520px;'),
+      px('flagpole','left:640px;  bottom:148px; width:110px;'),
+      px('flag',    'left:587px;  bottom:406px; width:100px;'),
+      px('cake',    'left:270px;  bottom:150px; width:200px;'),
+      px('star',    'left:250px;  bottom:640px; width:90px;',  'anim-bob'),
+      px('star',    'right:700px; bottom:720px; width:70px;',  'anim-bob'),
+      px('coin',    'left:900px;  bottom:560px; width:80px;',  'anim-coin')
+    ],
+    hero:{style:'left:520px; bottom:150px; width:170px;', walk:false}
   }
 ];
+
+const TOTAL = SLIDES.length;
+
+/* 문제 번호 → WORLD 표기 (5문제마다 월드가 바뀝니다) */
+const worldOf  = no => Math.floor((no - 1) / 5) + 1;
+const stageOf  = no => ((no - 1) % 5) + 1;
+const stageTag = no => `${worldOf(no)}-${stageOf(no)}`;
 
 /* ══════════════════════════════════════════════════════════
    4. 렌더링
    ══════════════════════════════════════════════════════════ */
 const $ = s => document.querySelector(s);
 const stage = $('#stage');
-const TOTAL = SLIDES.length;
-
-document.querySelectorAll('.cloud').forEach(c => c.innerHTML = ART.cloud);
-$('#hud').innerHTML = `<div class="heart">${ART.heart}</div>`.repeat(3);
-
 const pad2 = n => String(n).padStart(2,'0');
+const splitOpt = s => ({no:s.slice(0,1), rest:s.slice(1).trim()});
 
-function propsHTML(props=[]){
-  return props.map(p => p.sparkle
-    ? `<div class="sparkle" style="${p.style}"></div>`
-    : `<div class="prop ${p.cls||''}" style="${p.style}">${ART[p.art]}</div>`
-  ).join('');
+function propsHTML(list=[]){
+  return list.map(p => `<div class="px ${p.cls||''}" style="${p.style}">${ART[p.art]}</div>`).join('');
 }
-
+function cloudsHTML(theme){
+  if(theme === 'underground' || theme === 'castle') return '';
+  return `<div class="cloud cl-a">${ART.cloud}</div>
+          <div class="cloud cl-b">${ART.cloud}</div>
+          <div class="cloud cl-c">${ART.cloud}</div>`;
+}
 function groundHTML(kind){
-  return kind === 'grass'
-    ? `<div class="ground ground--grass"><div class="turf"></div><div class="soil"></div></div>`
-    : `<div class="ground ground--${kind}"></div>`;
+  if(kind === 'grass') return `<div class="ground g-grass"><div class="turf"></div><div class="soil"></div></div>`;
+  if(kind === 'cave')  return `<div class="ground g-cave"></div>`;
+  return `<div class="ground g-stone"></div>`;
 }
-
-// "① 2.92kg" → 번호와 내용 분리
-const splitOpt = s => ({mark:s.slice(0,1), rest:s.slice(1).trim()});
+function heroHTML(h){
+  if(!h) return '';
+  return `<div class="hero ${h.walk ? 'walk' : ''}" style="${h.style}">
+    <div class="fr f1">${ART.baby1}</div>
+    <div class="fr f2">${ART.baby2}</div>
+    <div class="fr f3">${ART.baby3}</div>
+  </div>`;
+}
 
 function contentHTML(s){
-  let inner = '', extra = '';
-
   if(s.type === 'title'){
-    inner = `
+    return `<div class="content">
       <div class="eyebrow" data-anim style="--d:60">${s.eyebrow}</div>
-      <div class="title-en" data-anim style="--d:220; margin-top:70px">${s.en[0]}<br>${s.en[1]}</div>
-      <div data-anim style="--d:620; margin-top:60px"><button class="btn-start" tabindex="-1">START</button></div>`;
+      <div class="title-en" data-anim style="--d:220; margin-top:56px">${s.en[0]}<br>${s.en[1]}</div>
+      <div data-anim style="--d:620; margin-top:52px"><button class="btn-start" tabindex="-1">START</button></div>
+    </div>`;
   }
 
   if(s.type === 'message' || s.type === 'start'){
     const lines = s.lines.map((l,i) =>
-      `<div class="body-text" data-anim style="--d:${380 + i*140}">${l}</div>`).join('');
-    inner = `
+      `<div class="body-text" data-anim style="--d:${360 + i*140}">${l}</div>`).join('');
+    return `<div class="content">
       <div class="title-kr" data-anim="drop" style="--d:40">${s.krTitle}</div>
-      <div style="margin-top:76px; display:flex; flex-direction:column; gap:14px">${lines}</div>
+      <div style="margin-top:64px; display:flex; flex-direction:column; gap:12px">${lines}</div>
       ${s.type === 'start'
-        ? `<div data-anim style="--d:${380 + s.lines.length*140 + 120}; margin-top:64px"><button class="btn-start" tabindex="-1">START</button></div>`
-        : ''}`;
+        ? `<div data-anim style="--d:${360 + s.lines.length*140 + 120}; margin-top:56px"><button class="btn-start" tabindex="-1">START</button></div>`
+        : ''}
+    </div>`;
   }
 
   if(s.type === 'rules'){
     const rules = s.rules.map((r,i) => `
-      <div class="rule" data-anim="slideL" style="--d:${340 + i*170}">
+      <div class="rule" data-anim="slideL" style="--d:${320 + i*170}">
         <span class="num">${pad2(i+1)}</span><span class="txt">${r}</span>
       </div>`).join('');
-    inner = `
+    return `<div class="content">
       <div class="title-kr" data-anim="drop" style="--d:40">${s.krTitle}</div>
-      <div class="rule-list" style="margin-top:70px">${rules}</div>`;
+      <div class="rule-list" style="margin-top:56px">${rules}</div>
+    </div>`;
   }
 
   if(s.type === 'quiz'){
     const opts = (s.options || []).map((o,i) => {
-      const {mark,rest} = splitOpt(o);
-      return `<div class="option" data-anim style="--d:${560 + i*130}; --opt:${s.optSize||60}px">
-                <span class="mark">${mark}</span><span>${rest}</span>
+      const {no,rest} = splitOpt(o);
+      return `<div class="option" data-anim style="--d:${540 + i*120}; --opt:${s.optSize||54}px">
+                <span class="blk">${ART.qblock}</span>
+                <span class="no">${pad2(i+1)}</span>
+                <span>${rest}</span>
               </div>`;
     }).join('');
-    inner = `
+    return `<div class="content">
       <div class="title-quiz" data-anim="drop" style="--d:40">QUIZ ${pad2(s.no)}</div>
-      <div data-anim style="--d:300; margin-top:78px">
-        <div class="q-text" style="font-size:${s.qSize||72}px">${s.question}</div>
+      <div data-anim style="--d:290; margin-top:52px">
+        <div class="q-text" style="font-size:${s.qSize||68}px">${s.question}</div>
         ${s.note ? `<div class="q-note">${s.note}</div>` : ''}
       </div>
-      ${opts ? `<div class="options" style="margin-top:88px">${opts}</div>` : ''}`;
+      ${opts ? `<div class="options" style="margin-top:64px">${opts}</div>` : ''}
+    </div>`;
   }
 
   if(s.type === 'choices'){
     const slots = s.labels.map((t,i) => `
-      <div class="slot" data-anim style="--d:${260 + i*120}">
-        <span class="mark">${'①②③④⑤'[i]}</span>
+      <div class="slot" data-anim style="--d:${240 + i*120}">
+        <span class="blk">${ART.qblock}</span>
+        <span class="no">${pad2(i+1)}</span>
         <span class="label">${t}</span>
       </div>`).join('');
-    inner = `
+    return `<div class="content content--top">
       <div class="title-quiz" data-anim="drop" style="--d:40">QUIZ ${pad2(s.no)}</div>
-      <div class="option-row">${slots}</div>`;
-    return `<div class="content content--top">${inner}</div>`;
+      <div class="option-row">${slots}</div>
+    </div>`;
   }
 
   if(s.type === 'answer'){
-    const {mark,rest} = splitOpt(s.answer);
-    extra = s.blank
-      ? `<div class="answer-bubble answer-bubble--blank" data-anim style="--d:520">
-           <span class="mark">${mark}</span><span class="fill">${rest}</span>
-         </div>`
-      : `<div class="answer-bubble" data-anim style="--d:520">
-           <span class="mark">${mark}</span><span>${rest}</span>
-         </div>`;
-    inner = `<div class="title-quiz" data-anim="drop" style="--d:40">QUIZ ${pad2(s.no)}</div>${extra}`;
-    return `<div class="content content--top">${inner}</div>`;
+    const {no,rest} = splitOpt(s.answer);
+    return `<div class="content content--top">
+      <div class="title-quiz" data-anim="drop" style="--d:40">QUIZ ${pad2(s.no)}</div>
+      <div class="tease">정답은?</div>
+      <div class="answer-bubble ${s.blank ? 'answer-bubble--blank' : ''}">
+        <span class="no">${no}</span><span>${rest}</span>
+      </div>
+    </div>`;
   }
 
-  return `<div class="content">${inner}</div>`;
+  if(s.type === 'clear'){
+    return `<div class="content content--top">
+      <div class="title-quiz" data-anim="drop" style="--d:40">COURSE CLEAR!</div>
+      <div class="body-text" data-anim style="--d:420; margin-top:44px; font-size:52px">
+        채원이의 첫 생일을 함께해 주셔서<br>고맙습니다 :)
+      </div>
+      <div class="body-text" data-anim style="--d:760; margin-top:26px; font-size:36px; opacity:.9">
+        획득한 코인 <span class="hl-gold" id="clear-coins">0</span>개
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+/* 정답 슬라이드의 ?블록과 주인공은 별도로 배치합니다 */
+function answerStageHTML(){
+  // 블록 아랫면(y=590)과 주인공 머리(점프 정점 y=581)가 맞닿습니다.
+  return `
+    <div class="qbox" style="left:336px; bottom:490px; width:168px;">
+      <div class="face q">${ART.qblock}</div>
+      <div class="face used">${ART.qblockUsed}</div>
+    </div>
+    <div class="hero" style="left:326px; bottom:150px; width:150px;">
+      <div class="fr f1">${ART.baby1}</div>
+      <div class="fr f2">${ART.baby2}</div>
+      <div class="fr f3">${ART.baby3}</div>
+    </div>`;
 }
 
 $('#slides').innerHTML = SLIDES.map(s => `
-  <section class="slide" data-type="${s.type}">
-    ${propsHTML(s.props)}
+  <section class="slide" data-type="${s.type}" data-theme="${s.theme}">
+    <div class="layer">${cloudsHTML(s.theme)}${propsHTML(s.props)}</div>
+    ${s.ceiling ? '<div class="ceiling c-cave"></div>' : ''}
     ${groundHTML(s.ground)}
+    ${s.type === 'answer' ? answerStageHTML() : heroHTML(s.hero)}
     ${contentHTML(s)}
   </section>`).join('');
 
 const slideEls = [...document.querySelectorAll('.slide')];
 
-// 목차
 $('#overview .grid').innerHTML = SLIDES.map((s,i) =>
   `<button class="card" data-i="${i}"><span class="n">${pad2(i+1)}</span><span class="t">${s.nav}</span></button>`
 ).join('');
 
 /* ══════════════════════════════════════════════════════════
-   5. 8비트 효과음 (오디오 파일 없이 생성)
+   5. HUD
+   ══════════════════════════════════════════════════════════ */
+$('#hud').innerHTML = `
+  <div class="col"><span class="k">채원</span>
+    <span class="v lives">${`<span class="hd">${ART.heart}</span>`.repeat(3)}</span></div>
+  <div class="col"><span class="k">SCORE</span><span class="v" id="hud-score">000000</span></div>
+  <div class="col"><span class="k">COIN</span>
+    <span class="v" id="hud-coin"><span class="coin-ico">${ART.coin}</span>×00</span></div>
+  <div class="col"><span class="k">WORLD</span><span class="v" id="hud-world">1-1</span></div>
+  <div class="col"><span class="k">TIME</span><span class="v" id="hud-time">3</span></div>`;
+
+const solved = new Set();          // 정답을 공개한 문제 번호
+const scoreOf = () => solved.size * 1000;
+
+function updateHUD(blink){
+  const s = SLIDES[idx];
+  const coin = solved.size;
+  $('#hud-score').textContent = String(scoreOf()).padStart(6,'0');
+  $('#hud-coin').innerHTML = `<span class="coin-ico">${ART.coin}</span>×${pad2(coin)}`;
+  $('#hud-world').textContent = s.no ? stageTag(s.no) : (s.type === 'clear' ? 'END' : '1-1');
+  if(blink){
+    ['#hud-score','#hud-coin'].forEach(sel => {
+      const el = $(sel);
+      el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink');
+    });
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   6. 8비트 사운드 (오디오 파일 없이 생성)
    ══════════════════════════════════════════════════════════ */
 let actx = null, muted = false;
 function audio(){
@@ -1147,71 +1211,161 @@ function audio(){
   if(actx.state === 'suspended') actx.resume();
   return actx;
 }
-function tone(freq, start, dur, vol=.14, type='square'){
+function tone(f, start, dur, vol=.13, type='square', f2=null){
   if(muted) return;
   try{
     const a = audio(), t = a.currentTime + start;
     const o = a.createOscillator(), g = a.createGain();
-    o.type = type; o.frequency.setValueAtTime(freq, t);
+    o.type = type;
+    o.frequency.setValueAtTime(f, t);
+    if(f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vol, t + .012);
     g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     o.connect(g); g.connect(a.destination);
     o.start(t); o.stop(t + dur + .02);
-  }catch(e){/* 오디오 미지원 환경 */}
+  }catch(e){}
 }
 const SFX = {
-  move : () => tone(660, 0, .09, .09),
-  back : () => tone(392, 0, .09, .08),
-  coin : () => { tone(988,0,.07,.13); tone(1319,.07,.28,.11); },
-  start: () => { [523,659,784,1047].forEach((f,i) => tone(f, i*.09, .2, .12)); },
-  right: () => { [784,988,1175,1568].forEach((f,i) => tone(f, i*.085, .3, .13)); tone(2093,.36,.5,.09); },
-  tick : () => tone(880, 0, .12, .12),
-  buzz : () => { tone(180,0,.2,.14,'sawtooth'); tone(140,.12,.3,.12,'sawtooth'); }
+  move : () => tone(660, 0, .08, .08),
+  back : () => tone(392, 0, .08, .07),
+  jump : () => tone(320, 0, .3, .12, 'square', 900),
+  bump : () => { tone(160, 0, .1, .14, 'square', 90); },
+  coin : () => { tone(988,0,.06,.14); tone(1319,.06,.3,.12); },
+  power: () => { [523,659,784,1047,1319].forEach((f,i) => tone(f, i*.05, .16, .11)); },
+  clear: () => {
+    const m = [[523,0],[659,.13],[784,.26],[1047,.39],[784,.52],[1047,.65],[1319,.78]];
+    m.forEach(([f,t]) => tone(f, t, .3, .12));
+    tone(1568, .95, .8, .1);
+  },
+  start: () => { [523,659,784,1047].forEach((f,i) => tone(f, i*.08, .18, .11)); },
+  tick : () => tone(880, 0, .1, .12),
+  warn : () => { [0,.12,.24].forEach(t => tone(1400, t, .07, .1)); },
+  buzz : () => { tone(180,0,.2,.13,'sawtooth'); tone(140,.12,.3,.11,'sawtooth'); },
+  world: () => { [392,523,659].forEach((f,i) => tone(f, i*.1, .24, .1)); }
 };
 
 /* ══════════════════════════════════════════════════════════
-   6. 색종이
+   7. 파티클
    ══════════════════════════════════════════════════════════ */
 const CONF = ['#F6CE3C','#E8503C','#5CCB4E','#4FD6C8','#E8508F','#FFFFFF'];
-function confetti(n=70){
-  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+const reduced = () => window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+function confetti(n=80){
+  if(reduced()) return;
   for(let i=0;i<n;i++){
     const d = document.createElement('div');
     d.className = 'confetti';
     const size = 14 + Math.random()*18;
-    d.style.cssText = `width:${size}px;height:${size}px;background:${CONF[i%CONF.length]};
-      left:${Math.random()*1920}px;top:-40px;`;
+    d.style.cssText = `width:${size}px;height:${size}px;background:${CONF[i%CONF.length]};left:${Math.random()*1920}px;top:-40px;`;
     stage.appendChild(d);
     d.animate([
       {transform:'translate(0,0) rotate(0deg)', opacity:1},
-      {transform:`translate(${(Math.random()-.5)*400}px, 1200px) rotate(${(Math.random()-.5)*1080}deg)`, opacity:.9}
+      {transform:`translate(${(Math.random()-.5)*420}px, 1220px) rotate(${(Math.random()-.5)*1080}deg)`, opacity:.9}
     ], {duration:2200 + Math.random()*1800, easing:'cubic-bezier(.3,.6,.6,1)'}).onfinish = () => d.remove();
   }
 }
 
 /* ══════════════════════════════════════════════════════════
-   7. 슬라이드 진행
+   8. 진행
    ══════════════════════════════════════════════════════════ */
-let idx = 0, locked = false;
+let idx = 0, step = 0, locked = false;
+const maxStep = s => (s.type === 'answer' ? 1 : 0);
 
 function render(){
   slideEls.forEach(el => el.classList.remove('is-active'));
 
-  // 등장 애니메이션을 매번 다시 재생하기 위해 노드를 교체
+  // 등장 애니메이션을 매번 다시 재생하기 위해 노드를 통째로 교체
   const fresh = slideEls[idx].cloneNode(true);
   slideEls[idx].replaceWith(fresh);
   slideEls[idx] = fresh;
   fresh.classList.add('is-active');
 
+  step = 0;
+  const s = SLIDES[idx];
+
   $('#progress .bar').style.width = ((idx+1) / TOTAL * 100) + '%';
   $('#pagenum').textContent = `${pad2(idx+1)} / ${TOTAL}`;
   document.querySelectorAll('#overview .card').forEach((c,i) => c.classList.toggle('now', i === idx));
+  $('#hud-time').textContent = '3';
+  updateHUD(false);
 
-  const t = SLIDES[idx].type;
-  if(t === 'answer')                    setTimeout(() => { SFX.right(); confetti(); }, 520);
-  else if(t === 'title' || t === 'start') setTimeout(SFX.start, 200);
-  else if(t === 'quiz' || t === 'choices') setTimeout(SFX.coin, 300);
+  // 이미 공개했던 정답이면 공개 상태로 되돌립니다 (뒤로 갔다 와도 유지)
+  if(s.type === 'answer' && solved.has(s.no)){
+    fresh.classList.add('revealed');
+    fresh.querySelector('.qbox')?.classList.add('opened');
+    step = 1;
+  }
+
+  if(s.type === 'clear'){
+    const el = fresh.querySelector('#clear-coins');
+    if(el) el.textContent = solved.size;
+    setTimeout(SFX.clear, 420);
+    setTimeout(() => confetti(140), 700);
+  }
+  else if(s.type === 'title' || s.type === 'start') setTimeout(SFX.start, 200);
+  else if(s.type === 'quiz' || s.type === 'choices') setTimeout(SFX.coin, 280);
+}
+
+/* ── 정답 공개: 주인공이 ?블록을 칩니다 ── */
+function reveal(){
+  const el = slideEls[idx];
+  const s  = SLIDES[idx];
+  const hero = el.querySelector('.hero');
+  const box  = el.querySelector('.qbox');
+  if(!hero || !box) return;
+
+  hero.classList.add('jump');
+  SFX.jump();
+
+  // 점프 정점에서 블록을 때립니다
+  setTimeout(() => {
+    box.classList.add('bump');
+    SFX.bump();
+
+    // 코인이 솟아오릅니다
+    const r = box.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const scale = sr.width / 1920;
+    const coin = document.createElement('div');
+    coin.className = 'pop-coin';
+    coin.style.left = ((r.left - sr.left)/scale + 46) + 'px';
+    coin.style.top  = ((r.top  - sr.top )/scale - 40) + 'px';
+    coin.innerHTML = ART.coin;
+    el.appendChild(coin);
+    setTimeout(() => coin.remove(), 900);
+
+    const sc = document.createElement('div');
+    sc.className = 'pop-score';
+    sc.textContent = '+1000';
+    sc.style.left = ((r.left - sr.left)/scale + 4) + 'px';
+    sc.style.top  = ((r.top  - sr.top )/scale - 70) + 'px';
+    el.appendChild(sc);
+    setTimeout(() => sc.remove(), 1100);
+
+    SFX.coin();
+    box.classList.add('opened');
+  }, 290);
+
+  // 정답 공개
+  setTimeout(() => {
+    hero.classList.remove('jump');
+    el.classList.add('revealed');
+    solved.add(s.no);
+    updateHUD(true);
+    SFX.power();
+    confetti(90);
+  }, 760);
+}
+
+function advance(){
+  const s = SLIDES[idx];
+  if(step < maxStep(s)){
+    step++;
+    if(s.type === 'answer') reveal();
+    return;
+  }
+  SFX.move();
+  go(idx + 1);
 }
 
 function go(n){
@@ -1221,22 +1375,46 @@ function go(n){
   locked = true;
   hideTimer();
 
-  const w = $('#wipe');
-  w.classList.remove('run'); void w.offsetWidth; w.classList.add('run');
+  const prevWorld = SLIDES[idx].no ? worldOf(SLIDES[idx].no) : 0;
+  const nextWorld = SLIDES[target].no ? worldOf(SLIDES[target].no) : 0;
+  const enteringNewWorld = nextWorld && nextWorld !== prevWorld && target > idx;
 
-  setTimeout(() => { idx = target; render(); }, 210);
-  setTimeout(() => { locked = false; }, 480);
+  const sl = $('#slides');
+  sl.classList.remove('iris-open'); sl.classList.add('iris');
+
+  setTimeout(() => {
+    idx = target;
+    render();
+    sl.classList.remove('iris'); sl.classList.add('iris-open');
+  }, 270);
+
+  if(enteringNewWorld){
+    setTimeout(() => showWorldCard(SLIDES[target].no), 300);
+    setTimeout(() => { locked = false; }, 2400);
+  }else{
+    setTimeout(() => { locked = false; }, 620);
+  }
 }
-const next = () => { SFX.move(); go(idx+1); };
-const prev = () => { SFX.back(); go(idx-1); };
+const prev = () => { SFX.back(); go(idx - 1); };
 
-/* ── 3초 카운트다운 ─────────────────── */
+/* ── 월드 인터미션 ── */
+function showWorldCard(no){
+  const card = $('#world-card');
+  card.querySelector('.wtitle').textContent = `WORLD ${stageTag(no)}`;
+  card.querySelector('.wsub').textContent = worldOf(no) === 1 ? '지상 스테이지' : '지하 스테이지';
+  card.querySelector('.ico').innerHTML = ART.baby1;
+  card.classList.add('show');
+  SFX.world();
+  setTimeout(() => card.classList.remove('show'), 1700);
+}
+
+/* ── 3초 타이머 ── */
 let timerId = null;
 function hideTimer(){
   clearTimeout(timerId);
-  const n = $('#timer .num');
   $('#timer').classList.remove('show');
-  n.classList.remove('small');
+  $('#timer .num').classList.remove('small');
+  $('#hud-time').textContent = '3';
 }
 function runTimer(){
   clearTimeout(timerId);
@@ -1244,48 +1422,47 @@ function runTimer(){
   let n = 3;
   box.classList.add('show');
   num.classList.remove('small');
-  const step = () => {
+  const stepFn = () => {
     num.textContent = n;
+    $('#hud-time').textContent = n;
     num.style.animation = 'none'; void num.offsetWidth; num.style.animation = '';
-    SFX.tick();
+    (n === 1 ? SFX.warn : SFX.tick)();
     n--;
-    if(n >= 1){ timerId = setTimeout(step, 1000); }
+    if(n >= 1) timerId = setTimeout(stepFn, 1000);
     else timerId = setTimeout(() => {
       num.textContent = 'TIME!';
       num.classList.add('small');
+      $('#hud-time').textContent = '0';
       SFX.buzz();
-      timerId = setTimeout(hideTimer, 1000);
+      timerId = setTimeout(hideTimer, 1100);
     }, 1000);
   };
-  step();
+  stepFn();
 }
 
-/* ── 목차 ──────────────────────────── */
+/* ── 목차 ── */
 const ov = $('#overview');
 function toggleOverview(force){
-  const show = force !== undefined ? force : !ov.classList.contains('show');
-  ov.classList.toggle('show', show);
+  ov.classList.toggle('show', force !== undefined ? force : !ov.classList.contains('show'));
 }
 ov.addEventListener('click', e => {
   const card = e.target.closest('.card');
-  if(!card) { toggleOverview(false); return; }
   toggleOverview(false);
-  SFX.coin();
-  go(+card.dataset.i);
+  if(card){ SFX.coin(); go(+card.dataset.i); }
 });
 
 /* ══════════════════════════════════════════════════════════
-   8. 조작
+   9. 조작
    ══════════════════════════════════════════════════════════ */
 const NEXT_KEYS = ['ArrowRight','ArrowDown','PageDown',' ','Enter','Spacebar'];
 const PREV_KEYS = ['ArrowLeft','ArrowUp','PageUp','Backspace'];
 
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape'){ toggleOverview(false); hideTimer(); return; }
-  if(ov.classList.contains('show') && e.key !== 'o' && e.key !== 'O') return;
+  if(ov.classList.contains('show') && !/^o$/i.test(e.key)) return;
 
-  if(NEXT_KEYS.includes(e.key)){ e.preventDefault(); next(); return; }
-  if(PREV_KEYS.includes(e.key)){ e.preventDefault(); prev(); return; }
+  if(NEXT_KEYS.includes(e.key)){ e.preventDefault(); advance(); return; }
+  if(PREV_KEYS.includes(e.key)){ e.preventDefault(); prev();    return; }
 
   switch(e.key.toLowerCase()){
     case 'home': go(0); break;
@@ -1302,7 +1479,7 @@ document.addEventListener('keydown', e => {
 stage.addEventListener('click', e => {
   if(ov.classList.contains('show')) return;
   const r = stage.getBoundingClientRect();
-  ((e.clientX - r.left) < r.width * 0.22) ? prev() : next();
+  ((e.clientX - r.left) < r.width * 0.22) ? prev() : advance();
 });
 
 let tx = 0;
@@ -1310,7 +1487,7 @@ stage.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, {pas
 stage.addEventListener('touchend', e => {
   if(ov.classList.contains('show')) return;
   const d = e.changedTouches[0].clientX - tx;
-  if(Math.abs(d) > 60) (d < 0 ? next() : prev());
+  if(Math.abs(d) > 60) (d < 0 ? advance() : prev());
 }, {passive:true});
 
 function toggleFull(){
@@ -1319,7 +1496,7 @@ function toggleFull(){
 }
 
 const helpEl = $('#help');
-helpEl.innerHTML = `<kbd>→</kbd> 다음 · <kbd>←</kbd> 이전 · <kbd>F</kbd> 전체화면 · <kbd>T</kbd> 3초타이머 · <kbd>O</kbd> 목차 · <kbd>M</kbd> 음소거`;
+helpEl.innerHTML = `<kbd>→</kbd> 다음·정답공개 · <kbd>←</kbd> 이전 · <kbd>F</kbd> 전체화면 · <kbd>T</kbd> 3초 · <kbd>O</kbd> 목차 · <kbd>M</kbd> 음소거`;
 let helpTid;
 function flashHelp(ms=4000){
   helpEl.classList.add('show');
@@ -1329,26 +1506,23 @@ function flashHelp(ms=4000){
 document.addEventListener('mousemove', () => flashHelp(2600));
 
 /* ══════════════════════════════════════════════════════════
-   9. 화면 맞춤
+   10. 화면 맞춤
    ══════════════════════════════════════════════════════════ */
 const safeEl = $('#safe');
 function fit(){
-  // 기준 ① 노치·홈바를 뺀 표시 영역
   const r = safeEl.getBoundingClientRect();
-  // 기준 ② iOS Safari는 주소창이 나타났다 사라지며 실제 보이는 높이가 달라집니다
   const vv = window.visualViewport;
   const w = Math.min(r.width,  vv ? vv.width  : Infinity);
   const h = Math.min(r.height, vv ? vv.height : Infinity);
-  const s = Math.min(w/1920, h/1080);
-  stage.style.transform = `translate(-50%,-50%) scale(${s})`;
+  stage.style.transform = `translate(-50%,-50%) scale(${Math.min(w/1920, h/1080)})`;
 }
 window.addEventListener('resize', fit);
 window.visualViewport?.addEventListener('resize', fit);
-// 회전 직후에는 크기가 늦게 확정되는 기기가 있어 한 박자 뒤에 다시 계산합니다.
 window.addEventListener('orientationchange', () => { fit(); setTimeout(fit, 320); });
+
 fit();
 render();
-flashHelp(6000);
+flashHelp(6500);
 </script>
 </body>
 </html>
