@@ -1396,6 +1396,63 @@ function updateHUD(blink){
 }
 
 /* ══════════════════════════════════════════════════════════
+   5-2. 배경음악
+   ── 두 곡을 번갈아 이어서 재생합니다.
+   ── 브라우저가 자동재생을 막으므로 첫 조작 때 시작합니다.
+   ══════════════════════════════════════════════════════════ */
+const BGM_SRC = [/*__EMBED_AUDIO__*/];
+
+let bgmEl = null, bgmIdx = 0, bgmOn = false, bgmVol = .30;
+
+function initBGM(){
+  if(!BGM_SRC.length) return;
+  bgmEl = new Audio();
+  bgmEl.volume = bgmVol;
+  bgmEl.addEventListener('ended', () => {          // 한 곡이 끝나면 다음 곡으로
+    bgmIdx = (bgmIdx + 1) % BGM_SRC.length;
+    bgmEl.src = BGM_SRC[bgmIdx];
+    bgmEl.play().catch(() => {});
+  });
+  bgmEl.src = BGM_SRC[0];
+}
+
+function startBGM(){                                // 첫 조작에서 한 번만
+  if(!bgmEl || bgmOn || muted) return;
+  bgmOn = true;
+  bgmEl.play().catch(() => { bgmOn = false; });
+}
+
+function setBgmVol(v){
+  bgmVol = Math.max(0, Math.min(1, v));
+  if(bgmEl) bgmEl.volume = muted ? 0 : bgmVol;
+  showVol();
+}
+
+let volT = null;
+function showVol(){
+  const el = $('#mute');
+  el.textContent = muted ? 'SOUND OFF' : `BGM ${Math.round(bgmVol * 100)}%`;
+  el.classList.add('show');
+  clearTimeout(volT);
+  if(!muted) volT = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+/* 정답 팡파레가 울릴 때는 배경음악을 잠깐 낮춥니다 */
+let duckT = null;
+function duck(ms = 2600){
+  if(!bgmEl || muted) return;
+  clearTimeout(duckT);
+  bgmEl.volume = bgmVol * .32;
+  duckT = setTimeout(() => { if(bgmEl && !muted) bgmEl.volume = bgmVol; }, ms);
+}
+
+function applyMute(){
+  if(!bgmEl) return;
+  if(muted){ bgmEl.pause(); }
+  else if(bgmOn){ bgmEl.volume = bgmVol; bgmEl.play().catch(() => {}); }
+}
+
+/* ══════════════════════════════════════════════════════════
    6. 8비트 사운드 (오디오 파일 없이 생성)
    ══════════════════════════════════════════════════════════ */
 let actx = null, muted = false;
@@ -1756,7 +1813,7 @@ function render(){
   if(s.type === 'clear'){
     const el = fresh.querySelector('#clear-coins');
     if(el) el.textContent = solved.size;
-    setTimeout(SFX.clear, 420);
+    setTimeout(() => { SFX.clear(); duck(4200); }, 420);
     setTimeout(() => confetti(140), 700);
   }
   else if(s.type === 'title' || s.type === 'start') setTimeout(SFX.start, 200);
@@ -1805,6 +1862,7 @@ function reveal(){
     solved.add(s.no);
     updateHUD(true);
     SFX.power();
+    duck();                 // 팡파레가 묻히지 않게 배경음악을 잠깐 낮춥니다
     confetti(90);
   }, 760);
 }
@@ -1910,6 +1968,7 @@ const NEXT_KEYS = ['ArrowRight','ArrowDown','PageDown',' ','Enter','Spacebar'];
 const PREV_KEYS = ['ArrowLeft','ArrowUp','PageUp','Backspace'];
 
 document.addEventListener('keydown', e => {
+  startBGM();
   if(e.key === 'Escape'){ toggleOverview(false); hideTimer(); return; }
   if(ov.classList.contains('show') && !/^o$/i.test(e.key)) return;
 
@@ -1921,7 +1980,9 @@ document.addEventListener('keydown', e => {
     case 'end':  go(TOTAL-1); break;
     case 'f':    toggleFull(); break;
     case 'o':    toggleOverview(); break;
-    case 'm':    muted = !muted; $('#mute').classList.toggle('show', muted); break;
+    case 'm':    muted = !muted; applyMute(); showVol(); break;
+    case '[':    setBgmVol(bgmVol - .05); break;
+    case ']':    setBgmVol(bgmVol + .05); break;
     case 't':    if(SLIDES[idx].type === 'quiz' || SLIDES[idx].type === 'choices') runTimer(); break;
     case 'h':
     case '?':    flashHelp(6000); break;
@@ -1929,13 +1990,14 @@ document.addEventListener('keydown', e => {
 });
 
 stage.addEventListener('click', e => {
+  startBGM();
   if(ov.classList.contains('show')) return;
   const r = stage.getBoundingClientRect();
   ((e.clientX - r.left) < r.width * 0.22) ? prev() : advance();
 });
 
 let tx = 0;
-stage.addEventListener('touchstart', e => tx = e.changedTouches[0].clientX, {passive:true});
+stage.addEventListener('touchstart', e => { startBGM(); tx = e.changedTouches[0].clientX; }, {passive:true});
 stage.addEventListener('touchend', e => {
   if(ov.classList.contains('show')) return;
   const d = e.changedTouches[0].clientX - tx;
@@ -1948,7 +2010,7 @@ function toggleFull(){
 }
 
 const helpEl = $('#help');
-helpEl.innerHTML = `<kbd>→</kbd> 다음·정답공개 · <kbd>←</kbd> 이전 · <kbd>F</kbd> 전체화면 · <kbd>T</kbd> 3초 · <kbd>O</kbd> 목차 · <kbd>M</kbd> 음소거`;
+helpEl.innerHTML = `<kbd>→</kbd> 다음·정답공개 · <kbd>←</kbd> 이전 · <kbd>F</kbd> 전체화면 · <kbd>T</kbd> 3초 · <kbd>O</kbd> 목차 · <kbd>M</kbd> 음소거 · <kbd>[ ]</kbd> 음량`;
 let helpTid;
 function flashHelp(ms=4000){
   helpEl.classList.add('show');
@@ -1973,6 +2035,7 @@ window.visualViewport?.addEventListener('resize', fit);
 window.addEventListener('orientationchange', () => { fit(); setTimeout(fit, 320); });
 
 fit();
+initBGM();
 render();
 flashHelp(6500);
 </script>

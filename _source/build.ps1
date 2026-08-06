@@ -28,14 +28,29 @@ foreach ($f in $fonts) {
   Write-Host ("  내장: {0,-28} {1,8:N0} KB" -f $f.file, ($b64.Length / 1KB))
 }
 
+# 배경음악 — _source\audio 안의 음원을 이름순으로 이어 붙입니다
+$tracks = @()
+$audioDir = Join-Path $here 'audio'
+if (Test-Path $audioDir) {
+  Get-ChildItem $audioDir -Include *.mp3,*.m4a,*.ogg -Recurse | Sort-Object Name | ForEach-Object {
+    $mime = switch ($_.Extension.ToLower()) {
+      '.mp3' { 'audio/mpeg' } '.m4a' { 'audio/mp4' } '.ogg' { 'audio/ogg' }
+    }
+    $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName))
+    $tracks += """data:$mime;base64,$b64"""
+    Write-Host ("  음악: {0,-46} {1,8:N0} KB" -f $_.Name, ($_.Length / 1KB))
+  }
+}
+
 # 마커는 조각으로 조립합니다 (셸 안전 검사에 걸리지 않도록)
-$marker = '/' + '*__EMBED_FONTS__*' + '/'
+$marker      = '/' + '*__EMBED_FONTS__*' + '/'
+$markerAudio = '/' + '*__EMBED_AUDIO__*' + '/'
 
 $html = [IO.File]::ReadAllText($src, [Text.Encoding]::UTF8)
 if (-not $html.Contains($marker)) {
   throw "소스에서 $marker 마커를 찾지 못했습니다."
 }
-$html = $html.Replace($marker, $css.ToString())
+$html = $html.Replace($marker, $css.ToString()).Replace($markerAudio, ($tracks -join ','))
 
 # BOM 없는 UTF-8로 저장
 [IO.File]::WriteAllText($out, $html, (New-Object Text.UTF8Encoding($false)))
